@@ -1,0 +1,62 @@
+/* Layout for SPE page */
+body.spe-compact .page-header-headings,
+body.spe-compact .activity-header,
+body.spe-compact .activity-description {
+  margin-bottom: .25rem !important;
+}
+
+body.spe-compact h1,
+body.spe-compact h2,
+body.spe-compact h3 {
+  margin-top: .25rem !important;
+  margin-bottom: .5rem !important;
+}
+
+/* Tables & boxes */
+body.spe-compact .generaltable {
+  margin-top: .5rem !important;
+  margin-bottom: .75rem !important;
+}
+
+body.spe-compact .generalbox,
+body.spe-compact .box,
+body.spe-compact .card {
+  margin-top: .5rem !important;
+  margin-bottom: .5rem !important;
+  padding-top: .5rem !important;
+  padding-bottom: .5rem !important;
+}
+
+/* Reduce whitespace */
+body.spe-compact p:empty {
+  display: none !important;
+}
+
+/* Tighten section headings */
+body.spe-compact .region-main .sectionname,
+body.spe-compact .region-main .lead {
+  margin-bottom: .5rem !important;
+}
+
+
+/* Left-align activity header area */
+body.spe-left #page-header .page-context-header {
+  justify-content: flex-start !important;  /* if theme uses flex & centers */
+  text-align: left !important;
+}
+
+/* Left-align the text inside the header */
+body.spe-left #page-header .text-center {
+  text-align: left !important;
+}
+
+/* Left-aligned title block */
+body.spe-left #page-header .page-header-headings {
+  text-align: left !important;
+  margin-left: 0 !important;
+}
+
+/* Margin between image and title */
+body.spe-left #page-header .page-header-image {
+  margin-right: .5rem !important;
+}

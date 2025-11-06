@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/spe/db" VERSION="2025092801" COMMENT="SPE tables"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="../../lib/xmldb/xmldb.xsd">
+  <TABLES>
+
+    <!-- Queue + results for sentiment analysis -->
+    <TABLE NAME="spe_sentiment" COMMENT="Queue + results for sentiment analysis">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="speid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="raterid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="rateeid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="type" TYPE="char" LENGTH="20" NOTNULL="true"/> <!-- peer_comment|reflection -->
+        <FIELD NAME="text" TYPE="text" NOTNULL="true"/>
+        <FIELD NAME="sentiment" TYPE="number" LENGTH="10" DECIMALS="4" NOTNULL="false"/> <!-- -1..1 -->
+        <FIELD NAME="label" TYPE="char" LENGTH="20" NOTNULL="false"/> <!-- negative|neutral|positive|toxic -->
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true"/> <!-- pending|done|error -->
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="by_spe_rater_ratee" UNIQUE="false" FIELDS="speid,raterid,rateeid"/>
+      </INDEXES>
+    </TABLE>
+
+    <!-- Rater-ratee disparity decisions at submission time -->
+    <TABLE NAME="spe_disparity" COMMENT="Rater-ratee disparity decisions at submission time">
+      <FIELDS>
+        <FIELD NAME="id"          TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="speid"       TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0"/>
+        <FIELD NAME="raterid"     TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0"/>
+        <FIELD NAME="rateeid"     TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0"/>
+        <FIELD NAME="label"       TYPE="char" LENGTH="10" NOTNULL="false" DEFAULT=""/> <!-- positive/neutral/negative/toxic -->
+        <FIELD NAME="scoretotal"  TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" DEFAULT="0"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="spe_rater_ratee_ix" UNIQUE="true" FIELDS="speid,raterid,rateeid"/>
+      </INDEXES>
+    </TABLE>
+
+    <!-- SPE activity instances -->
+    <TABLE NAME="spe" COMMENT="SPE activity instances">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true"/>
+        <FIELD NAME="intro" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="introformat" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="1"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="coursefk" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+
+    <!-- Team mapping per SPE instance -->
+    <TABLE NAME="spe_teammap" COMMENT="Maps students to teams for an SPE instance">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="speid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="teamname" TYPE="char" LENGTH="100" NOTNULL="true"/>
+        <FIELD NAME="rawidnumber" TYPE="char" LENGTH="100" NOTNULL="false"/>
+        <FIELD NAME="rawusername" TYPE="char" LENGTH="100" NOTNULL="false"/>
+        <FIELD NAME="rawemail" TYPE="char" LENGTH="255" NOTNULL="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="spefk" TYPE="foreign" FIELDS="speid" REFTABLE="spe" REFFIELDS="id"/>
+        <KEY NAME="userfk" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="spe_user_unique" UNIQUE="true" FIELDS="speid,userid"/>
+      </INDEXES>
+    </TABLE>
+
+    <!-- One submission per student per SPE -->
+    <TABLE NAME="spe_submission" COMMENT="One submission per student per SPE">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="speid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="selfdesc" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="reflection" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="wordcount" TYPE="int" LENGTH="10" NOTNULL="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="spefk" TYPE="foreign" FIELDS="speid" REFTABLE="spe" REFFIELDS="id"/>
+        <KEY NAME="userfk" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="unique_by_student" UNIQUE="true" FIELDS="speid,userid"/>
+      </INDEXES>
+    </TABLE>
+
+    <!-- Scores and peer comments per criterion -->
+    <TABLE NAME="spe_rating" COMMENT="Scores and peer comments per criterion">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="speid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="raterid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="rateeid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="criterion" TYPE="char" LENGTH="50" NOTNULL="true"/>
+        <FIELD NAME="score" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="comment" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="spefk" TYPE="foreign" FIELDS="speid" REFTABLE="spe" REFFIELDS="id"/>
+        <KEY NAME="raterfk" TYPE="foreign" FIELDS="raterid" REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="rateefk" TYPE="foreign" FIELDS="rateeid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="by_pair" UNIQUE="false" FIELDS="speid,raterid,rateeid,criterion"/>
+      </INDEXES>
+    </TABLE>
+
+  </TABLES>
+</XMLDB>
