@@ -270,8 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
                     'speid'   => $cm->instance,
                     'raterid' => $USER->id,
                     'rateeid' => $USER->id,
-                    'type'    => 'reflection',
-                    'status'  => 'pending'
+                    'type'    => 'reflection'
                 ]);
                 $DB->insert_record('spe_sentiment', (object)[
                     'speid'       => $cm->instance,
@@ -283,6 +282,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
                     'timecreated' => time()
                 ]);
             }
+
+            // Queue the self-description (selfdesc) text
+            if ($selfdesc !== '') {
+                $DB->delete_records('spe_sentiment', [
+                    'speid'   => $cm->instance,
+                    'raterid' => $USER->id,
+                    'rateeid' => $USER->id,
+                    'type'    => 'selfdesc'
+                ]);
+
+                $DB->insert_record('spe_sentiment', (object)[
+                    'speid'       => $cm->instance,
+                    'raterid'     => $USER->id,  // author
+                    'rateeid'     => $USER->id,  // about self
+                    'type'        => 'selfdesc',
+                    'text'        => $selfdesc,
+                    'status'      => 'pending',
+                    'timecreated' => time()
+                ]);
+            }
+
         }
 
         // 8) Clean up draft and redirect to the submission page

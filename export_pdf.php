@@ -270,7 +270,7 @@ if ($userid > 0) {
 
     header('Cache-Control: private, must-revalidate');
     header('Pragma: public');
-    $pdf->Output('spe_grade_detail_' . $userid . '.pdf', 'D');
+    $pdf->Output('spe_gradedetail.pdf', 'D');
     exit;
 }
 
@@ -369,12 +369,12 @@ foreach ($ratios as $k=>$v) { $w[$k] = round($usableW * $v, 2); }
 $pdf->SetFont('helvetica', 'B', 9);
 $pdf->Cell($w['student'], 7, 'Student', 1);
 $labels = array_values($CRITERIA);
-$pdf->Cell($w['c1'], 7, $labels[0] . ' (Σ)', 1, 0, 'C');
-$pdf->Cell($w['c2'], 7, $labels[1] . ' (Σ)', 1, 0, 'C');
-$pdf->Cell($w['c3'], 7, $labels[2] . ' (Σ)', 1, 0, 'C');
-$pdf->Cell($w['c4'], 7, $labels[3] . ' (Σ)', 1, 0, 'C');
-$pdf->Cell($w['c5'], 7, $labels[4] . ' (Σ)', 1, 0, 'C');
-$pdf->Cell($w['total'], 7, 'Total (Σ)', 1, 0, 'C');
+$pdf->Cell($w['c1'], 7, $labels[0], 1, 0, 'C');
+$pdf->Cell($w['c2'], 7, $labels[1], 1, 0, 'C');
+$pdf->Cell($w['c3'], 7, $labels[2], 1, 0, 'C');
+$pdf->Cell($w['c4'], 7, $labels[3], 1, 0, 'C');
+$pdf->Cell($w['c5'], 7, $labels[4], 1, 0, 'C');
+$pdf->Cell($w['total'], 7, 'Total', 1, 0, 'C');
 $pdf->Cell($w['avg'],   7, 'Average per rater', 1, 0, 'C');
 $pdf->Cell($w['disp'],  7, 'Disparity', 1, 1, 'C');
 $pdf->SetFont('helvetica', '', 9);

@@ -2,7 +2,10 @@
 // mod/spe/gradebook.php
 //
 // Instructor Grade Book view — no group mode.
-// Lists all participants’ peer-received criterion sums, Total, Average per rater, and Disparity flag.
+// Lists per-criterion sums + live-calculated columns:
+//   - Evaluation (50%)   = ( received_total / (raters * 25) ) * 50
+//   - Sentiment (50%)    = ( avg normalized sentiment 0..1 ) * 50
+//   - Total (100%)       = Evaluation (50%) + Sentiment (50%)
 // Adds a search bar to filter by student name/username.
 
 require('../../config.php');
@@ -51,7 +54,7 @@ $criteria = [
     'problemsolve'  => 'Problem solving',
 ];
 
-// --- Build user list (all participants who received or gave a rating)
+// --- Build user list (participants who received or submitted)
 $userids = [];
 
 // Everyone who received any rating
@@ -59,18 +62,14 @@ $list = $DB->get_fieldset_sql(
     "SELECT DISTINCT rateeid FROM {spe_rating} WHERE speid = :s",
     ['s' => $cm->instance]
 );
-foreach ($list as $uid) {
-    $userids[(int)$uid] = true;
-}
+foreach ($list as $uid) { $userids[(int)$uid] = true; }
 
 // Plus anyone who submitted (safety net)
 $list2 = $DB->get_fieldset_sql(
     "SELECT DISTINCT userid FROM {spe_submission} WHERE speid = :s",
     ['s' => $cm->instance]
 );
-foreach ($list2 as $uid) {
-    $userids[(int)$uid] = true;
-}
+foreach ($list2 as $uid) { $userids[(int)$uid] = true; }
 
 if (!$userids) {
     echo $OUTPUT->notification('No participants detected for this activity.', 'notifyinfo');
@@ -131,7 +130,7 @@ if ($mgr->table_exists('spe_disparity')) {
     }
 }
 
-// --- Search bar (placed above the table; visually aligned above the Disparity column)
+// --- Search bar
 $searchurl = new moodle_url('/mod/spe/gradebook.php', ['id' => $cm->id]);
 echo html_writer::start_div('', ['style' => 'display:flex; justify-content:flex-end; margin-bottom:8px;']);
 echo html_writer::start_tag('form', [
@@ -139,23 +138,12 @@ echo html_writer::start_tag('form', [
     'action' => $searchurl->out(false),
     'style'  => 'display:flex; gap:6px; align-items:center;'
 ]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => (string)$cm->id]);
 echo html_writer::empty_tag('input', [
-    'type'  => 'hidden',
-    'name'  => 'id',
-    'value' => (string)$cm->id
+    'type' => 'text', 'name' => 'q', 'value' => s($q),
+    'placeholder' => 'Search student', 'style' => 'max-width:260px;'
 ]);
-echo html_writer::empty_tag('input', [
-    'type'        => 'text',
-    'name'        => 'q',
-    'value'       => s($q),
-    'placeholder' => 'Search student',
-    'style'       => 'max-width:260px;'
-]);
-echo html_writer::empty_tag('input', [
-    'type'  => 'submit',
-    'value' => 'Search',
-    'class' => 'btn btn-secondary'
-]);
+echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Search', 'class' => 'btn btn-secondary']);
 if ($q !== '') {
     $clearurl = new moodle_url('/mod/spe/gradebook.php', ['id' => $cm->id]);
     echo html_writer::link($clearurl, 'Clear');
@@ -168,11 +156,10 @@ $table = new html_table();
 $table->attributes['class'] = 'generaltable';
 
 $headlabels = ['Student'];
-foreach ($criteria as $key => $label) {
-    $headlabels[] = $label;
-}
-$headlabels[] = 'Total';
-$headlabels[] = 'Average per rater';
+foreach ($criteria as $key => $label) { $headlabels[] = $label; }
+$headlabels[] = 'Evaluation (50%)';
+$headlabels[] = 'Sentiment (50%)';
+$headlabels[] = 'Total (100%)';
 $headlabels[] = 'Disparity';
 $table->head = array_map('strval', $headlabels);
 
@@ -181,13 +168,10 @@ $table->data = [];
 $shown = 0;
 
 foreach ($users as $uid => $u) {
-
-    // Apply search filter (match fullname or username)
+    // Apply search filter
     if ($qnorm !== '') {
         $namestr = core_text::strtolower(fullname($u) . ' (' . $u->username . ')');
-        if (core_text::strpos($namestr, $qnorm) === false) {
-            continue;
-        }
+        if (core_text::strpos($namestr, $qnorm) === false) { continue; }
     }
 
     $name = fullname($u) . ' (' . s($u->username) . ')';
@@ -196,20 +180,53 @@ foreach ($users as $uid => $u) {
     $row = [];
     $row[] = (string) html_writer::link($link, $name);
 
+    // Per-criterion sums (displayed)
     $sumtotal = 0;
     foreach ($criteria as $ckey => $_label) {
         $v = isset($matrix[$uid][$ckey]) ? (int)$matrix[$uid][$ckey] : 0;
-        $sumtotal += $v;
+        $sumtotal += $v;           // this is total points received across all raters
         $row[] = (string)$v;
     }
 
-    $row[] = (string)$sumtotal;
-
+    // Number of unique raters
     $ratercount = isset($raters[$uid]) ? (int)$raters[$uid]->raters : 0;
-    $avg = $ratercount > 0 ? round($sumtotal / $ratercount, 2) : '-';
-    $row[] = (string)$avg;
 
-    // Disparity cell: "Yes" (highlighted) if present, else blank
+    // --- Evaluation (50%)
+    // Max per rater is 25 points across 5 criteria.
+    // evaluation_50 = (sumtotal / (ratercount * 25)) * 50
+    $eval50 = '-';
+    if ($ratercount > 0) {
+        $den = $ratercount * 25.0;
+        $ratio = $den > 0 ? ($sumtotal / $den) : 0.0;        // 0..1
+        $ratio = max(0.0, min(1.0, $ratio));
+        $eval50 = round($ratio * 50.0, 1);                   // 0..50
+    }
+
+    // --- Sentiment (50%) from spe_sentiment.sentiment (0..1), peer_comment only
+    $avgnorm = $DB->get_field_sql("
+        SELECT AVG(s.sentiment)
+          FROM {spe_sentiment} s
+         WHERE s.speid   = :speid
+           AND s.rateeid = :uid
+           AND s.type    = 'peer_comment'
+    ", ['speid' => $cm->instance, 'uid' => $uid]);
+
+    if ($avgnorm === false || $avgnorm === null) { $avgnorm = 0.5; } // neutral if none
+    $avgnorm = (float)$avgnorm;
+    if ($avgnorm < 0) $avgnorm = 0.0;
+    if ($avgnorm > 1) $avgnorm = 1.0;
+
+    $sent50 = round($avgnorm * 50.0, 1);                      // 0..50
+
+    // --- Total (100%)
+    $total100 = is_numeric($eval50) ? round($eval50 + $sent50, 1) : '-';
+
+    // Append new columns
+    $row[] = is_numeric($eval50)   ? ($eval50   . ' %') : $eval50;
+    $row[] = ($sent50 . ' %');
+    $row[] = is_numeric($total100) ? ($total100 . ' %') : $total100;
+
+    // Disparity
     if (!empty($disparity[$uid])) {
         $row[] = (string) html_writer::tag('span', 'Yes', [
             'style' => 'background:#ff0; padding:0 6px; border-radius:3px; font-weight:600;'
@@ -229,7 +246,7 @@ foreach ($users as $uid => $u) {
     $shown++;
 }
 
-// Final hardening (headers/cells must be strings)
+// Final hardening (headers/cells as strings)
 if (!empty($table->head)) {
     foreach ($table->head as $i => $h) {
         if ($h instanceof html_table_cell) { $h = $h->text; }

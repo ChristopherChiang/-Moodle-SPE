@@ -171,7 +171,7 @@ if ($userid > 0) {
     $ratee = core_user::get_user($userid, 'id,firstname,lastname,username', IGNORE_MISSING);
     $ratee_name = $ratee ? (fullname($ratee) . ' (' . $ratee->username . ')') : (string)$userid;
 
-    $filename = 'spe_grade_detail_' . $userid . '.csv';
+    $filename = 'spe_grade_detail.csv';
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="'.$filename.'"');
     header('Cache-Control: private, must-revalidate');

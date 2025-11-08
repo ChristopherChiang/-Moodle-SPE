@@ -296,13 +296,25 @@ if ($userids) {
 
 // Split reflections and comments
 $reflections  = [];
+$selfdescs    = [];
 $peercomments = [];
-foreach ($rows as $r) { if ($r->type === 'reflection') { $reflections[] = $r; } else { $peercomments[] = $r; } }
+foreach ($rows as $r) {
+    if ($r->type === 'reflection') {
+        $reflections[] = $r;
+    } elseif ($r->type === 'selfdesc') {
+        $selfdescs[] = $r;
+    } else {
+        $peercomments[] = $r;
+    }
+}
+
 
 // Summary line
 $summary = 'Processed ' . count($processedids) . ' items — ' .
            count($reflections) . ' reflection(s), ' .
+           count($selfdescs) . ' self-description(s), ' .
            count($peercomments) . ' peer comment(s).';
+
 
 if ($mgr->table_exists('spe_disparity')) {
     $summary .= ' | Disparity rows: ' . $ins_count . ' inserted, ' . $upd_count . ' updated.';
@@ -340,6 +352,12 @@ $render_table = function(string $title, array $data) use ($users, $badge) {
         $rname = $rater ? fullname($rater) . " ({$rater->username})" : (string)$r->raterid;
         $tname = $ratee ? fullname($ratee) . " ({$ratee->username})" : (string)$r->rateeid;
 
+        $typemap = ['peer_comment' => 'peer comment', 'reflection' => 'reflection', 'selfdesc' => 'self-description'];
+        $typekey = (string)($r->type ?? '');
+        $type = ($r->raterid == $r->rateeid && $typekey !== 'reflection')
+            ? 'self-description'
+            : ($typemap[$typekey] ?? str_replace('_', ' ', $typekey));
+            
         $compound = sprintf('%.3f', (float)$r->sentiment);
         $txt      = (string)($r->text ?? '');
         $excerpt  = s(core_text::substr(clean_text($txt), 0, 120)) . (core_text::strlen($txt) > 120 ? '…' : '');
@@ -347,7 +365,7 @@ $render_table = function(string $title, array $data) use ($users, $badge) {
         echo html_writer::tag('tr',
             html_writer::tag('td', $rname) .
             html_writer::tag('td', $tname) .
-            html_writer::tag('td', s($r->type)) .
+            html_writer::tag('td', s($type)) .
             html_writer::tag('td', $badge((string)$r->label)) .
             html_writer::tag('td', $compound) .
             html_writer::tag('td', $excerpt)
@@ -358,7 +376,9 @@ $render_table = function(string $title, array $data) use ($users, $badge) {
 };
 
 $render_table('Reflection', $reflections);
+$render_table('Self-descriptions', $selfdescs);
 $render_table('Peer comments', $peercomments);
+
 
 // Back button
 $back = new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]);

@@ -69,6 +69,11 @@ PHRASE_PATTERNS = {
     r"\baffect(s|ed)?\s+overall\s+progress\b": "affects_overall_progress",
     r"\bneeds?\s+improvement\b": "needs_improvement",
     r"\broom\s+for\s+improvement\b": "room_for_improvement",
+    r"\bdid\s+most\s+of\s+the\s+work(\s+(for|within)\s+(the\s+)?(team|group))?\b": "did_most_of_work",
+    r"\bi\s+did\s+a\s+lot\s+(for|of)\s+(the\s+)?team\b": "did_a_lot_for_team",
+    r"\bgood\s+job\b": "good_job",
+    r"\bdid\s+not\s+do\s+much(\s+at\s+all)?\b": "did_not_do_much",
+    r"\bdid\s+not\s+contribut(e|ed)\s+at\s+all\b": "did_not_contribute_at_all",
 }
 PHRASE_LEXICON = {
     "create_challenges": -3.1, "dominate_discussions": -3.0,
@@ -76,7 +81,11 @@ PHRASE_LEXICON = {
     "inconsistencies": -2.4, "strong_opinions": -1.4,
     "time_mgmt_could_improve": -2.6, "delays_in_completing": -2.8,
     "affects_overall_progress": -2.6, "needs_improvement": -2.9,
-    "room_for_improvement": -2.2,
+    "room_for_improvement": -2.2,     "did_most_of_work":  +3.1,     # very positive
+    "did_a_lot_for_team": +2.8,    # positive
+    "good_job": +2.3,              # positive booster
+    "did_not_do_much": -3.2,       # clearly negative
+    "did_not_contribute_at_all": -3.6,  # very negative
 }
 analyzer.lexicon.update(PHRASE_LEXICON)
 

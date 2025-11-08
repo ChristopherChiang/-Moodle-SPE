@@ -89,27 +89,26 @@ if (!$mgr->table_exists('spe_rating')) {
         }
 
         $table = new html_table();
-        $table->head = ['Rater', 'Ratee', 'Avg Score', 'Comment (excerpt)', 'Disparity'];
+        $table->head = ['Rater', 'Ratee', 'Avg Score', 'Comment (excerpt)', 'Label'];
 
         foreach ($byPair as $key => $pair) {
             $avg = !empty($pair['scores'])
                 ? (array_sum($pair['scores']) / count($pair['scores']))
                 : 0.0;
 
-            $excerpt = s(core_text::substr($pair['comment'] ?? '', 0, 140));
+            $comment = (string)($pair['comment'] ?? '');
+            $fullcomment = s($comment);            // fully escaped
+            $excerpt = nl2br($fullcomment);
 
-            // Build disparity 
+            // Build Disparity
             $disphtml = '-';
             if (isset($disparities[$key])) {
                 $d = $disparities[$key];
-                $label = s($d['label'] ?: 'flag');
-                $total = (int)$d['scoretotal'];
                 $when  = $d['time'] ? userdate($d['time']) : '';
                 $meta  = $when ? " <span class='spe-mono'>@ {$when}</span>" : '';
-                $detail = $total ? " (total={$total})" : '';
                 $disphtml = html_writer::tag(
                     'span',
-                    "Disparity: {$label}{$detail}{$meta}",
+                    "Disparity: Yes. {$meta}",
                     ['class' => 'spe-chip disparity']
                 );
             }
@@ -151,16 +150,26 @@ if (!$mgr->table_exists('spe_sentiment')) {
         $table2->head = ['ID', 'Type', 'Rater', 'Target', 'Status', 'Label', 'Score', 'Excerpt'];
 
         foreach ($sentrows as $srow) {
+            // Map stored type to display label (including selfdesc → self-description)
+            $typekey = (string)($srow->type ?? '');
+            $typemap = [
+                'peer_comment' => 'peer comment',
+                'reflection'   => 'reflection',
+                'selfdesc'     => 'self-description',
+            ];
+            $type = ($srow->raterid == $srow->rateeid && $typekey !== 'reflection')
+                ? 'self-description'
+                : ($typemap[$typekey] ?? str_replace('_', ' ', $typekey));
             $rater  = $mkname($srow->rater_first, $srow->rater_last);
             $ratee  = $mkname($srow->ratee_first, $srow->ratee_last);
             $label  = $srow->label ? s($srow->label) : '-';
             $score  = isset($srow->sentiment) ? format_float((float)$srow->sentiment, 4) : '-';
             $status = s($srow->status);
-            $excerpt = s(core_text::substr($srow->text ?? '', 0, 140));
+            $excerpt = s(core_text::substr($srow->text ?? '', 0));
 
             $table2->data[] = [
                 $srow->id,
-                s($srow->type),
+                s($type),
                 s($rater),
                 s($ratee),
                 $status,
