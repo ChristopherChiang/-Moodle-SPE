@@ -21,7 +21,7 @@ echo $OUTPUT->heading('SPE Analysis Report');
 // Disparity chip style
 echo html_writer::tag('style', '
 .spe-chip { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; line-height:1.4; }
-.spe-chip.disparity { background:#fff3cd; color:#856404; border:1px solid #ffeeba; }
+.spe-chip.disparity { background:#fff3cd; color:#856404; border:1px solid #fffdbaff; }
 .spe-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; font-size:12px; color:#555; }
 ');
 
@@ -33,20 +33,48 @@ $mkname = function(string $first = '', string $last = ''): string {
 $mgr    = $DB->get_manager();
 $params = ['speid' => $cm->instance];
 
+// ============================
+// [ADD] Tunable mismatch rules
+// ============================
+$RULES = (object)[
+    'hi_score_threshold' => 4.0,   // >= 4.0/5 considered high
+    'lo_score_threshold' => 2.0,   // <= 2.0/5 considered low
+    'neg_sent_threshold' => 0.35,  // <= 0.35 considered negative sentiment
+    'pos_sent_threshold' => 0.65   // >= 0.65 considered positive sentiment
+];
+
 // Load disparities key
 $disparities = [];
 if ($mgr->table_exists('spe_disparity')) {
+    // [CHG] Only rows explicitly marked as disparity
     $sqldisp = "SELECT d.raterid, d.rateeid, d.label, d.scoretotal, d.timecreated
                   FROM {spe_disparity} d
-                 WHERE d.speid = :speid";
+                 WHERE d.speid = :speid
+                   AND d.isdisparity = 1";
     $drows = $DB->get_records_sql($sqldisp, $params);
     foreach ($drows as $d) {
         $key = $d->raterid . '->' . $d->rateeid;
         $disparities[$key] = [
             'label'      => (string)($d->label ?? ''),
             'scoretotal' => (int)($d->scoretotal ?? 0),
-            'time'       => (int)$d->timecreated
+            'time'       => (int)$d->timecreated,
+            'source'     => 'table' // [ADD] mark source
         ];
+    }
+}
+
+// [ADD] Prefetch average peer-comment sentiment per rater->ratee pair
+$pairsent = [];
+if ($mgr->table_exists('spe_sentiment')) {
+    $sqlpairsent = "SELECT s.raterid, s.rateeid, AVG(s.sentiment) AS avgsent
+                      FROM {spe_sentiment} s
+                     WHERE s.speid = :speid
+                       AND s.type  = 'peer_comment'
+                  GROUP BY s.raterid, s.rateeid";
+    $srows = $DB->get_records_sql($sqlpairsent, $params);
+    foreach ($srows as $sr) {
+        $key = $sr->raterid . '->' . $sr->rateeid;
+        $pairsent[$key] = (float)$sr->avgsent;
     }
 }
 
@@ -80,6 +108,9 @@ if (!$mgr->table_exists('spe_rating')) {
                     'ratee'   => $mkname($r->ratee_first, $r->ratee_last),
                     'scores'  => [],
                     'comment' => $r->comment,
+                    // [ADD] hold avg score and sentiment for mismatch logic
+                    'avgscore' => 0.0,
+                    'avgsent'  => null
                 ];
             }
             $byPair[$key]['scores'][$r->criterion] = (int)$r->score;
@@ -88,29 +119,57 @@ if (!$mgr->table_exists('spe_rating')) {
             }
         }
 
+        // [ADD] Compute avg score and attach paired sentiment if any
+        foreach ($byPair as $key => &$pair) {
+            $pair['avgscore'] = !empty($pair['scores'])
+                ? (array_sum($pair['scores']) / count($pair['scores']))
+                : 0.0;
+            if (array_key_exists($key, $pairsent)) {
+                $pair['avgsent'] = (float)$pairsent[$key];
+            }
+        }
+        unset($pair);
+
         $table = new html_table();
         $table->head = ['Rater', 'Ratee', 'Avg Score', 'Comment (excerpt)', 'Label'];
 
         foreach ($byPair as $key => $pair) {
-            $avg = !empty($pair['scores'])
-                ? (array_sum($pair['scores']) / count($pair['scores']))
-                : 0.0;
+            $avg = (float) $pair['avgscore'];
 
             $comment = (string)($pair['comment'] ?? '');
             $fullcomment = s($comment);            // fully escaped
             $excerpt = nl2br($fullcomment);
 
-            // Build Disparity
+            // Build Disparity / Mismatch chip
             $disphtml = '-';
+            $chiptext = '';
+            $chipmeta = '';
+            $chipclass = 'spe-chip disparity';
+
             if (isset($disparities[$key])) {
+                // Prefer explicit DB-flagged disparity
                 $d = $disparities[$key];
                 $when  = $d['time'] ? userdate($d['time']) : '';
                 $meta  = $when ? " <span class='spe-mono'>@ {$when}</span>" : '';
-                $disphtml = html_writer::tag(
-                    'span',
-                    "Disparity: Yes. {$meta}",
-                    ['class' => 'spe-chip disparity']
-                );
+                $label = $d['label'] !== '' ? s($d['label']) : 'Yes';
+                $chiptext = "Disparity: Yes.";
+                $chipmeta = $meta;
+            } else {
+                // [ADD] Fallback mismatch detection: score vs sentiment tug-of-war
+                $sent = $pair['avgsent'];
+                if ($sent !== null) {
+                    $hiScoreNegSent = ($avg >= $RULES->hi_score_threshold) && ($sent <= $RULES->neg_sent_threshold);
+                    $loScorePosSent = ($avg <= $RULES->lo_score_threshold) && ($sent >= $RULES->pos_sent_threshold);
+                    if ($hiScoreNegSent || $loScorePosSent) {
+                        $chiptext = 'Disparity: score/comment mismatch';
+                        $chipmeta = " <span class='spe-mono'>avg=" . format_float($avg, 2) .
+                                    '; sent=' . format_float($sent, 2) . '</span>';
+                    }
+                }
+            }
+
+            if ($chiptext !== '') {
+                $disphtml = html_writer::tag('span', $chiptext . $chipmeta, ['class' => $chipclass]);
             }
 
             $table->data[] = [

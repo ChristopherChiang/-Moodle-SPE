@@ -34,7 +34,7 @@ if (class_exists('\core\session\manager')) { \core\session\manager::write_close(
 
 // PDF
 $aname    = $spe ? format_string($spe->name) : format_string($cm->name);
-$filename = clean_filename("SPE_submission_{$userid}.pdf");
+$filename = clean_filename("Self_and_peer_evaluation.pdf");
 
 $pdf = new pdf();
 $pdf->SetCreator('Moodle SPE');

@@ -22,8 +22,19 @@ require_capability('mod/spe:manage', $context);
 $q = optional_param('q', '', PARAM_RAW_TRIMMED);
 $qnorm = core_text::strtolower((string)$q);
 
-// Page setup
-$PAGE->set_url('/mod/spe/gradebook.php', ['id' => $cm->id, 'q' => $q]);
+// -------- Sorting (arrow only after user clicks) --------
+// $sortparam = raw value from URL, used ONLY to decide whether to show an arrow.
+// $sort      = effective sort key used for data; defaults to 'name' when no user choice yet.
+$sortparam = optional_param('sort', '',     PARAM_ALPHANUMEXT); // '' means: first load, no user sort chosen
+$dir       = optional_param('dir',  'asc',  PARAM_ALPHA);
+$dir       = ($dir === 'desc') ? 'desc' : 'asc';
+
+$sort = $sortparam ?: 'name';  // still sort data by name ASC initially
+
+// Page setup (omit sort/dir when none chosen so no arrow shows on first load)
+$urlparams = ['id' => $cm->id, 'q' => $q];
+if ($sortparam !== '') { $urlparams['sort'] = $sortparam; $urlparams['dir'] = $dir; }
+$PAGE->set_url('/mod/spe/gradebook.php', $urlparams);
 $PAGE->set_title('SPE — Grade book');
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
@@ -143,8 +154,12 @@ echo html_writer::empty_tag('input', [
     'type' => 'text', 'name' => 'q', 'value' => s($q),
     'placeholder' => 'Search student', 'style' => 'max-width:260px;'
 ]);
+// keep raw sort from URL (so we preserve user-chosen column/dir after searching)
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sort', 'value' => s($sortparam)]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'dir',  'value' => s($dir)]);
 echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Search', 'class' => 'btn btn-secondary']);
 if ($q !== '') {
+    // If you want Clear to also reset sorting & hide arrow, omit sort/dir from this URL:
     $clearurl = new moodle_url('/mod/spe/gradebook.php', ['id' => $cm->id]);
     echo html_writer::link($clearurl, 'Clear');
 }
@@ -155,17 +170,37 @@ echo html_writer::end_div();
 $table = new html_table();
 $table->attributes['class'] = 'generaltable';
 
-$headlabels = ['Student'];
-foreach ($criteria as $key => $label) { $headlabels[] = $label; }
-$headlabels[] = 'Evaluation (50%)';
-$headlabels[] = 'Sentiment (50%)';
-$headlabels[] = 'Total (100%)';
-$headlabels[] = 'Disparity';
+// Helper to build sortable header links.
+// Important: use $sortparam (not $sort) to decide whether to show the arrow.
+$baseurl = new moodle_url('/mod/spe/gradebook.php', ['id' => $cm->id, 'q' => $q]);
+$make_header = function(string $label, string $key) use ($baseurl, $sortparam, $dir) : string {
+    // If user already sorted by this key → toggle direction; else start at ASC
+    $newdir = ($sortparam === $key && $dir === 'asc') ? 'desc' : 'asc';
+    $url = new moodle_url($baseurl, ['sort' => $key, 'dir' => $newdir]);
+
+    // Only show arrow when the user explicitly chose this column
+    $arrow = '';
+    if ($sortparam === $key && $sortparam !== '') {
+        $arrow = ($dir === 'asc') ? ' ▲' : ' ▼';
+    }
+    return html_writer::link($url, $label . $arrow);
+};
+
+$headlabels = [];
+$headlabels[] = $make_header('Student', 'name');     // Student shows no arrow until user clicks
+$headlabels[] = $make_header('Groups',  'groups');   // New column
+foreach ($criteria as $key => $label) {
+    $headlabels[] = $make_header($label, $key);
+}
+$headlabels[] = $make_header('Evaluation (50%)', 'eval');
+$headlabels[] = $make_header('Sentiment (50%)',  'sent');
+$headlabels[] = $make_header('Total (100%)',     'total');
+$headlabels[] = $make_header('Disparity',        'disparity');
 $table->head = array_map('strval', $headlabels);
 
-// Rows
+// Rows (collect first to allow post-build sorting)
 $table->data = [];
-$shown = 0;
+$rows = [];
 
 foreach ($users as $uid => $u) {
     // Apply search filter
@@ -180,11 +215,24 @@ foreach ($users as $uid => $u) {
     $row = [];
     $row[] = (string) html_writer::link($link, $name);
 
+    // Groups for this user (course-level)
+    $groups = groups_get_all_groups($course->id, $uid, 0, 'g.id, g.name');
+    $groupnames = [];
+    if ($groups) {
+        foreach ($groups as $g) {
+            $groupnames[] = format_string($g->name);
+        }
+    }
+    $groupsstr = $groupnames ? implode(', ', $groupnames) : '-';
+    $row[] = (string)$groupsstr;
+
     // Per-criterion sums (displayed)
     $sumtotal = 0;
+    $percrit  = [];
     foreach ($criteria as $ckey => $_label) {
         $v = isset($matrix[$uid][$ckey]) ? (int)$matrix[$uid][$ckey] : 0;
-        $sumtotal += $v;           // this is total points received across all raters
+        $sumtotal += $v;
+        $percrit[$ckey] = $v;
         $row[] = (string)$v;
     }
 
@@ -192,8 +240,6 @@ foreach ($users as $uid => $u) {
     $ratercount = isset($raters[$uid]) ? (int)$raters[$uid]->raters : 0;
 
     // --- Evaluation (50%)
-    // Max per rater is 25 points across 5 criteria.
-    // evaluation_50 = (sumtotal / (ratercount * 25)) * 50
     $eval50 = '-';
     if ($ratercount > 0) {
         $den = $ratercount * 25.0;
@@ -202,7 +248,7 @@ foreach ($users as $uid => $u) {
         $eval50 = round($ratio * 50.0, 1);                   // 0..50
     }
 
-    // --- Sentiment (50%) from spe_sentiment.sentiment (0..1), peer_comment only
+    // --- Sentiment (50%) — peer_comment only
     $avgnorm = $DB->get_field_sql("
         SELECT AVG(s.sentiment)
           FROM {spe_sentiment} s
@@ -227,7 +273,8 @@ foreach ($users as $uid => $u) {
     $row[] = is_numeric($total100) ? ($total100 . ' %') : $total100;
 
     // Disparity
-    if (!empty($disparity[$uid])) {
+    $hasdisp = !empty($disparity[$uid]);
+    if ($hasdisp) {
         $row[] = (string) html_writer::tag('span', 'Yes', [
             'style' => 'background:#ff0; padding:0 6px; border-radius:3px; font-weight:600;'
         ]);
@@ -242,8 +289,50 @@ foreach ($users as $uid => $u) {
         if (is_array($cellval))                  { $cellval = json_encode($cellval); }
         $row[$i] = (string)$cellval;
     }
-    $table->data[] = array_values($row);
-    $shown++;
+
+    // Collect row & values for sorting
+    $rows[] = [
+        'uid'      => (int)$uid,
+        'row'      => array_values($row),
+        'sortvals' => [
+            'name'       => core_text::strtolower(fullname($u) . ' (' . $u->username . ')'),
+            'groups'     => core_text::strtolower($groupsstr),
+            'eval'       => is_numeric($eval50) ? (float)$eval50 : -INF,
+            'sent'       => (float)$sent50,
+            'total'      => is_numeric($total100) ? (float)$total100 : -INF,
+            'disparity'  => $hasdisp ? 1 : 0
+        ] + $percrit
+    ];
+}
+
+// -------- Post-build sort (uses effective $sort) --------
+$validkeys = array_merge(
+    ['name'=>true,'groups'=>true,'eval'=>true,'sent'=>true,'total'=>true,'disparity'=>true],
+    array_fill_keys(array_keys($criteria), true)
+);
+if (!array_key_exists($sort, $validkeys)) {
+    $sort = 'name';
+}
+usort($rows, function($a, $b) use ($sort, $dir) {
+    $av = $a['sortvals'][$sort] ?? null;
+    $bv = $b['sortvals'][$sort] ?? null;
+
+    $anum = is_numeric($av);
+    $bnum = is_numeric($bv);
+    if ($anum && $bnum) {
+        $cmp = ($av <=> $bv);
+    } else {
+        $as = (string)$av;
+        $bs = (string)$bv;
+        $cmp = strcoll($as, $bs);
+        if ($cmp === 0) { $cmp = ($a['uid'] <=> $b['uid']); }
+    }
+    return ($dir === 'asc') ? $cmp : -$cmp;
+});
+
+// Push sorted rows to table
+foreach ($rows as $r) {
+    $table->data[] = $r['row'];
 }
 
 // Final hardening (headers/cells as strings)
