@@ -71,7 +71,7 @@ foreach (array_merge($basetables, $optionaltables) as $table) {
     }
 }
 
-// Clear published “Graded” flags
+// Clear published Graded
 $prefname = 'mod_spe_groupscore_' . $cm->id;
 $DB->delete_records('user_preferences', ['name' => $prefname]);
 

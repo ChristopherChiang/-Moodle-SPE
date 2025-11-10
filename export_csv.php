@@ -24,9 +24,7 @@ if (!$returnurl) {
     $returnurl = $ref ? $ref : (new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]))->out(false);
 }
 
-// If userid is not provided explicitly, try to infer from returnurl (when coming from grade_detail.php).
 if (!$userid && $returnurl) {
-    // attempt to parse userid from returnurl query string
     $parts = parse_url($returnurl);
     if (!empty($parts['query'])) {
         parse_str($parts['query'], $qs);
@@ -36,7 +34,7 @@ if (!$userid && $returnurl) {
     }
 }
 
-// Normal page display mode: show a “Back” link and auto-start download (preserve userid if present).
+// UI mode 
 if (!$download) {
     $PAGE->set_url('/mod/spe/export_csv.php', ['id' => $cm->id, 'returnurl' => $returnurl] + ($userid ? ['userid' => $userid] : []));
     $PAGE->set_context($context);
@@ -60,7 +58,7 @@ if (!$download) {
     exit;
 }
 
-// -------------------- Download mode below --------------------
+// Export mode
 define('NO_OUTPUT_BUFFERING', true);
 require_once($CFG->libdir . '/grouplib.php');
 
@@ -80,9 +78,8 @@ $fail = function(string $msg) {
     exit;
 };
 
-// ---------- Helpers shared by both modes ----------
 
-// Disparity check for a rateeid (gradebook-mode)
+// Disparity check for rateeid 
 function load_disparity_map_for_rateeids(int $speid, array $rateeids): array {
     global $DB;
     if (empty($rateeids)) return [];
@@ -97,13 +94,12 @@ function load_disparity_map_for_rateeids(int $speid, array $rateeids): array {
     return $map;
 }
 
-// Sentiment label getter (grade_detail-mode; mirrors grade_detail.php)
+// Sentiment label 
 function get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, string $comment): string {
     global $DB;
     $mgr = $DB->get_manager();
     if (!$mgr->table_exists('spe_sentiment')) return '';
 
-    // exact text match
     $rec = $DB->get_record_select(
         'spe_sentiment',
         "speid = :speid AND raterid = :raterid AND rateeid = :rateeid AND type = :type AND text = :text",
@@ -118,7 +114,6 @@ function get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, st
         IGNORE_MULTIPLE
     );
 
-    // fallback latest
     if (!$rec) {
         $recs = $DB->get_records(
             'spe_sentiment',
@@ -138,9 +133,8 @@ function get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, st
     return '';
 }
 
-// ---------- MODE A: grade_detail export (if $userid > 0) ----------
+// Grade detail export 
 if ($userid > 0) {
-    // Load all peer ratings for this ratee (exclude self)
     $sql = "SELECT r.id, r.raterid, r.criterion, r.score, r.comment, r.timecreated
               FROM {spe_rating} r
              WHERE r.speid = :speid
@@ -151,7 +145,6 @@ if ($userid > 0) {
 
     if (!$rows) { $fail('No peer ratings for this student yet.'); }
 
-    // group by rater
     $byrater = [];
     $raterids = [];
     foreach ($rows as $r) {
@@ -179,15 +172,14 @@ if ($userid > 0) {
 
     $out = fopen('php://output', 'w');
     if (!$out) { $fail('Cannot open output stream.'); }
-    fputs($out, "\xEF\xBB\xBF"); // BOM for Excel
+    fputs($out, "\xEF\xBB\xBF"); 
 
-    // heading line like page title
     fputcsv($out, ['Ratings received by', $ratee_name]);
-    fputcsv($out, ['']); // blank
+    fputcsv($out, ['']); 
 
-    // criteria labels (match page)
+    // criteria labels
     $criteria = [
-        'effortdocs'    => 'Effort on docs',
+        'effortdocs'    => 'Effort',
         'teamwork'      => 'Teamwork',
         'communication' => 'Communication',
         'management'    => 'Management',
@@ -201,7 +193,7 @@ if ($userid > 0) {
         fputcsv($out, ['Rater', $rname]);
         fputcsv($out, ['Criterion', 'Score']);
 
-        // per-criterion scores & a single comment + total (same as page)
+        // per-criterion scores & a single comment + total 
         $critvals = [];
         $comment  = '';
         $total    = 0;
@@ -228,12 +220,12 @@ if ($userid > 0) {
         $comment_oneline = trim(preg_replace('/\s+/', ' ', (string)$comment));
         fputcsv($out, ['Comment', $comment_oneline]);
 
-        // sentiment label (match page’s resolution)
+        // sentiment label 
         $sentlabel = get_sentiment_label_for_pair($speid, (int)$rid, (int)$userid, (string)$comment_oneline);
         $sentlabel = ($sentlabel === '') ? '—' : $sentlabel;
         fputcsv($out, ['Sentiment', $sentlabel]);
 
-        // disparity (pair-level) with reason (match page)
+        // disparity 
         $disp = $DB->get_record('spe_disparity', [
             'speid'   => $speid,
             'raterid' => (int)$rid,
@@ -247,16 +239,14 @@ if ($userid > 0) {
             fputcsv($out, ['Disparity', '—']);
         }
 
-        fputcsv($out, ['']); // spacer
+        fputcsv($out, ['']); 
     }
 
     fclose($out);
     exit;
 }
 
-// ---------- MODE B: gradebook export (default if no userid) ----------
-
-// criteria (match gradebook.php display)
+// Gradebook export 
 $criteria = [
     'effortdocs'    => 'Effort on docs',
     'teamwork'      => 'Teamwork',
@@ -265,17 +255,15 @@ $criteria = [
     'problemsolve'  => 'Problem solving',
 ];
 
-// collect all participants (ratees) similar to gradebook.php
+// collect all participants 
 $userids = [];
 
-// received any rating
 $list = $DB->get_fieldset_sql(
     "SELECT DISTINCT rateeid FROM {spe_rating} WHERE speid = :s",
     ['s' => $speid]
 );
 foreach ($list as $uid) { $userids[(int)$uid] = true; }
 
-// anyone who submitted (safety)
 $list2 = $DB->get_fieldset_sql(
     "SELECT DISTINCT userid FROM {spe_submission} WHERE speid = :s",
     ['s' => $speid]
@@ -287,7 +275,6 @@ if (!$userids) { $fail('No participants detected for this activity.'); }
 list($uinsql, $uinparams) = $DB->get_in_or_equal(array_keys($userids), SQL_PARAMS_NAMED, 'u');
 $users = $DB->get_records_select('user', "id $uinsql", $uinparams, '', 'id, firstname, lastname, username');
 
-// aggregate Σ per criterion for each rateeid (exclude self-ratings)
 $params = ['speid' => $speid];
 $matrix = [];
 $rs = $DB->get_recordset_sql("
@@ -309,7 +296,6 @@ foreach ($rs as $r) {
 }
 $rs->close();
 
-// raters count per rateeid (exclude self)
 $sqlraters = "SELECT rateeid, COUNT(DISTINCT raterid) AS raters
                 FROM {spe_rating}
                WHERE speid = :speid
@@ -317,7 +303,7 @@ $sqlraters = "SELECT rateeid, COUNT(DISTINCT raterid) AS raters
             GROUP BY rateeid";
 $raters = $DB->get_records_sql($sqlraters, $params);
 
-// disparity map
+// disparity
 $disparity = load_disparity_map_for_rateeids($speid, array_keys($users));
 
 // CSV headers
@@ -329,9 +315,9 @@ header('Pragma: public');
 
 $out = fopen('php://output', 'w');
 if (!$out) { $fail('Cannot open output stream.'); }
-fputs($out, "\xEF\xBB\xBF"); // BOM
+fputs($out, "\xEF\xBB\xBF"); 
 
-// header row (match gradebook table)
+// header 
 $head = ['Student'];
 foreach ($criteria as $key => $label) { $head[] = $label . ' (Σ)'; }
 $head[] = 'Total (Σ)';

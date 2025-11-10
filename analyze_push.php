@@ -1,9 +1,4 @@
 <?php
-// mod/spe/analyze_push.php
-//
-// Push pending texts to the Sentiment API, persist results back to spe_sentiment,
-// and compute/update disparity rows in spe_disparity using API outputs
-// (stores commenttext + isdisparity).
 
 require('../../config.php');
 
@@ -15,7 +10,7 @@ require_course_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 require_capability('mod/spe:manage', $context);
 
-// --- Page ---
+// Setup Page
 $PAGE->set_url('/mod/spe/analyze_push.php', ['id' => $cm->id]);
 $PAGE->set_title('SPE — Run Sentiment Analysis');
 $PAGE->set_heading($course->fullname);
@@ -24,9 +19,7 @@ $PAGE->set_pagelayout('incourse');
 echo $OUTPUT->header();
 echo $OUTPUT->heading('Run sentiment analysis');
 
-// -----------------------------------------------------------------------------
-// 1) Gather pending rows to analyze
-// -----------------------------------------------------------------------------
+// Gather pending items
 $pendings = $DB->get_records('spe_sentiment', [
     'speid'  => $cm->instance,
     'status' => 'pending'
@@ -40,9 +33,7 @@ if (!$pendings) {
     exit;
 }
 
-// -----------------------------------------------------------------------------
-// 2) Probe API reachability
-// -----------------------------------------------------------------------------
+// API interaction
 require_once($CFG->libdir . '/filelib.php');
 
 function spe_probe_api(string $apiurl): bool {
@@ -78,18 +69,14 @@ if (!spe_probe_api($apiurl)) {
     exit;
 }
 
-// -----------------------------------------------------------------------------
-// 3) Build batch payload + Ed25519 request headers
-//    NEW: we include score_total/score_min/score_max per item so API can decide disparity
-// -----------------------------------------------------------------------------
+// Build payload
 $SCORE_MIN_DEFAULT = 5;
 $SCORE_MAX_DEFAULT = 25;
 
 $items = [];
-$byid  = []; // cache pending row + score totals by sentiment id
+$byid  = []; 
 
 foreach ($pendings as $row) {
-    // Compute total score for this rater->ratee pair (used by API for disparity rules)
     $scoretotal = (int)$DB->get_field_sql(
         "SELECT COALESCE(SUM(score),0)
            FROM {spe_rating}
@@ -105,7 +92,6 @@ foreach ($pendings as $row) {
         'score_max'   => $SCORE_MAX_DEFAULT,
     ];
 
-    // cache for later upsert into spe_disparity
     $byid[(int)$row->id] = (object)[
         'row'        => $row,
         'scoretotal' => $scoretotal
@@ -114,16 +100,14 @@ foreach ($pendings as $row) {
 
 if (count($items) > 2000) { $items = array_slice($items, 0, 2000); }
 
-// Canonical JSON to match API signature expectations
+// Cannonical JSON payload
 $payload = json_encode(['items' => $items], JSON_UNESCAPED_UNICODE);
 
 require_once(__DIR__ . '/ca_helpers.php');
 $path      = '/analyze';
 $caheaders = spe_ca_build_request_headers($path, $payload);
 
-// -----------------------------------------------------------------------------
-// 4) POST to API
-// -----------------------------------------------------------------------------
+// API request
 $curl    = new curl();
 $headers = ['Content-Type: application/json'];
 if ($apitoken !== '') { $headers[] = 'X-API-Token: ' . $apitoken; }
@@ -144,7 +128,7 @@ try {
     $raw_headers = substr($resp, 0, $header_size);
     $body        = substr($resp, $header_size);
 
-    // Verify server response headers/signature
+    // Verify server response signature
     $respheaders = [];
     foreach (preg_split('/\r\n/', $raw_headers) as $line) {
         if (strpos($line, ':') !== false) {
@@ -171,9 +155,7 @@ try {
     exit;
 }
 
-// -----------------------------------------------------------------------------
-// 5) Parse JSON
-// -----------------------------------------------------------------------------
+// Parse response
 $data = json_decode($resp);
 if ($data === null || (json_last_error() !== JSON_ERROR_NONE)) {
     echo $OUTPUT->notification('Unexpected (non-JSON) response from Sentiment API.', 'notifyproblem');
@@ -200,9 +182,7 @@ if (!isset($data->results) || !is_array($data->results)) {
     exit;
 }
 
-// -----------------------------------------------------------------------------
-// 6) Persist sentiment results; upsert disparity using API outputs
-// -----------------------------------------------------------------------------
+// Persist results
 $processedids = [];
 $mgr = $DB->get_manager();
 $ins_count = 0; $upd_count = 0;
@@ -211,7 +191,6 @@ foreach ($data->results as $res) {
     $id = (int)($res->id ?? 0);
     if (!$id) { continue; }
 
-    // Sanity: the pending cache and DB row must exist
     if (!isset($byid[$id])) { continue; }
     $cache = $byid[$id];
     /** @var stdClass $sentrow */
@@ -239,7 +218,6 @@ foreach ($data->results as $res) {
         $isdisparity = !empty($res->disparity) ? 1 : 0;
         $reason      = isset($res->disparity_reason) ? (string)$res->disparity_reason : '';
 
-        // Requirement: if disparity -> store reason; else -> store empty string
         $commenttext = $isdisparity ? $reason : '';
 
         $existing = $DB->get_record('spe_disparity', [
@@ -254,7 +232,7 @@ foreach ($data->results as $res) {
             'rateeid'     => (int)$sentrow->rateeid,
             'label'       => $label,
             'scoretotal'  => $scoretotal,
-            'commenttext' => $commenttext,   // <-- only the reason when disparity; else ''
+            'commenttext' => $commenttext,   
             'isdisparity' => $isdisparity,
             'timecreated' => time()
         ];
@@ -280,9 +258,7 @@ if (!$processedids) {
     exit;
 }
 
-// -----------------------------------------------------------------------------
-// 7) Read back processed rows for UI table (unchanged UI)
-// -----------------------------------------------------------------------------
+// Read back processed items for display
 list($insql, $inparams) = $DB->get_in_or_equal($processedids, SQL_PARAMS_NAMED, 's');
 $rows = $DB->get_records_select('spe_sentiment', "id $insql", $inparams, 'type, raterid, rateeid, id');
 
@@ -322,7 +298,6 @@ if ($mgr->table_exists('spe_disparity')) {
 
 echo html_writer::div($summary, 'alert alert-success');
 
-// Small badge helper for label colors
 $badge = function (string $label): string {
     $style = 'background:#6c757d;';
     if ($label === 'positive') $style = 'background:#1a7f37;';

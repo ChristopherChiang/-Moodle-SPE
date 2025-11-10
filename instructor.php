@@ -10,8 +10,6 @@ require_course_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 require_capability('mod/spe:manage', $context);
 
-// Per-activity "hide after run" timestamp.
-// When set, we hide all rows whose submission time <= this timestamp.
 $hidekey = 'hide_after_run_ts_' . $cm->id;
 $hideafterts = (int) get_config('mod_spe', $hidekey);
 
@@ -70,7 +68,7 @@ echo html_writer::alist($links, ['class' => 'list-unstyled mb-3']);
 // Controls
 $runall = optional_param('runall', 0, PARAM_BOOL); // global run analyzer after queueing?
 
-// Pull all students with submissions (we need this for queueing and rendering)
+// Pull all students with submissions
 $allstudents = $DB->get_records_sql("
     SELECT u.id, u.firstname, u.lastname, u.username, s.id AS subid,
            s.timecreated, s.timemodified
@@ -80,12 +78,10 @@ $allstudents = $DB->get_records_sql("
   ORDER BY u.lastname, u.firstname
 ", ['speid' => $cm->instance]);
 
-// If Run Analysis (global) was clicked: queue for ALL students, set hide-ts, redirect to analyzer
+// Process "Run Analysis" request
 if ($runall && confirm_sesskey()) {
     if ($allstudents) {
-        // Queue reflections and peer comments for everyone (idempotent via "exists" checks)
         foreach ($allstudents as $u) {
-            // Self-reflection (new + legacy table)
             $reflectiontext = '';
             if ($sub = $DB->get_record('spe_submission', ['speid' => $cm->instance, 'userid' => $u->id])) {
                 if (!empty(trim($sub->reflection))) {
@@ -161,8 +157,8 @@ if ($runall && confirm_sesskey()) {
     ]));
 }
 
-// Load disparity flags (optional UI counts)
-$disparitycount = []; // raterid => count
+// Load disparity flags
+$disparitycount = []; 
 $disparitymap   = [];
 $mgr = $DB->get_manager();
 if ($mgr->table_exists('spe_disparity')) {
@@ -175,7 +171,7 @@ if ($mgr->table_exists('spe_disparity')) {
     }
 }
 
-// Visible students = only those with submissions newer than the hide-after-run timestamp
+// Visible students 
 $students = [];
 if ($allstudents) {
     foreach ($allstudents as $u) {
@@ -188,7 +184,7 @@ if ($allstudents) {
 
 echo html_writer::tag('h2', 'Approvals & Queue for Analysis');
 
-// === Global "Run Analysis" button ABOVE the table, right-aligned (above Disparities column) ===
+// "Run Analysis" button
 $runallurl = new moodle_url('/mod/spe/instructor.php', [
     'id'      => $cm->id,
     'runall'  => 1,
@@ -200,10 +196,9 @@ echo html_writer::div(
     ['style' => 'text-align:right;margin:6px 0 2px;']
 );
 
-// Always render the table with headers; rows may be empty by design.
+// Table of students
 echo html_writer::start_tag('table', ['class' => 'generaltable']);
 
-// Pre-compute queued counts for visible students
 $queuedbyrater = [];
 if ($students) {
     foreach ($students as $u) {
@@ -214,7 +209,7 @@ if ($students) {
     }
 }
 
-// Table head (NO Action column anymore)
+// Table header
 $headcells = [
     html_writer::tag('th', 'Student'),
     html_writer::tag('th', 'Submission Time'),
@@ -223,7 +218,7 @@ $headcells = [
 ];
 echo html_writer::tag('tr', implode('', $headcells));
 
-// Rows (may be zero if nothing newer than the last run)
+// Rows for each student
 if ($students) {
     foreach ($students as $u) {
         $queuedtotal = $queuedbyrater[$u->id] ?? 0;
@@ -249,7 +244,7 @@ if ($students) {
 
 echo html_writer::end_tag('table');
 
-// --- SPE — GradeBook section
+// GradeBook 
 echo html_writer::tag('h2', 'SPE — GradeBook');
 echo html_writer::div(
     $OUTPUT->single_button(

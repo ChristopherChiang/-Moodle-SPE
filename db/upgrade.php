@@ -108,7 +108,7 @@ function xmldb_spe_upgrade(int $oldversion) {
             $dbman->create_table($table);
         }
 
-
+        // Spe disparity
         $table = new xmldb_table('spe_disparity');
         if (!$dbman->table_exists($table)) {
             $table->add_field('id',          XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);

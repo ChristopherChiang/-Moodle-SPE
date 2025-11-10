@@ -1,12 +1,4 @@
 <?php
-// mod/spe/gradebook.php
-//
-// Instructor Grade Book view — no group mode.
-// Lists per-criterion sums + live-calculated columns:
-//   - Evaluation (50%)   = ( received_total / (raters * 25) ) * 50
-//   - Sentiment (50%)    = ( avg normalized sentiment 0..1 ) * 50
-//   - Total (100%)       = Evaluation (50%) + Sentiment (50%)
-// Adds a search bar to filter by student name/username.
 
 require('../../config.php');
 
@@ -18,20 +10,18 @@ require_course_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 require_capability('mod/spe:manage', $context);
 
-// Optional search query
+// Search query
 $q = optional_param('q', '', PARAM_RAW_TRIMMED);
 $qnorm = core_text::strtolower((string)$q);
 
-// -------- Sorting (arrow only after user clicks) --------
-// $sortparam = raw value from URL, used ONLY to decide whether to show an arrow.
-// $sort      = effective sort key used for data; defaults to 'name' when no user choice yet.
-$sortparam = optional_param('sort', '',     PARAM_ALPHANUMEXT); // '' means: first load, no user sort chosen
+// Sorting
+$sortparam = optional_param('sort', '',     PARAM_ALPHANUMEXT); 
 $dir       = optional_param('dir',  'asc',  PARAM_ALPHA);
 $dir       = ($dir === 'desc') ? 'desc' : 'asc';
 
-$sort = $sortparam ?: 'name';  // still sort data by name ASC initially
+$sort = $sortparam ?: 'name';  
 
-// Page setup (omit sort/dir when none chosen so no arrow shows on first load)
+// Page setup 
 $urlparams = ['id' => $cm->id, 'q' => $q];
 if ($sortparam !== '') { $urlparams['sort'] = $sortparam; $urlparams['dir'] = $dir; }
 $PAGE->set_url('/mod/spe/gradebook.php', $urlparams);
@@ -42,7 +32,7 @@ $PAGE->set_pagelayout('incourse');
 echo $OUTPUT->header();
 echo $OUTPUT->heading('SPE — Grade book');
 
-// === Export links (CSV | PDF) just below the heading ===
+// Export links
 if (has_capability('mod/spe:viewreports', $context)) {
     $here    = $PAGE->url->out_as_local_url(false);
     $csvpage = new moodle_url('/mod/spe/export_csv.php', ['id' => $cm->id, 'returnurl' => $here]);
@@ -56,16 +46,15 @@ if (has_capability('mod/spe:viewreports', $context)) {
     );
 }
 
-// Criterion headers (keys MUST match DB values exactly)
+// Criterion headers 
 $criteria = [
-    'effortdocs'    => 'Effort on docs',
+    'effortdocs'    => 'Effort',
     'teamwork'      => 'Teamwork',
     'communication' => 'Communication',
     'management'    => 'Management',
     'problemsolve'  => 'Problem solving',
 ];
 
-// --- Build user list (participants who received or submitted)
 $userids = [];
 
 // Everyone who received any rating
@@ -75,7 +64,7 @@ $list = $DB->get_fieldset_sql(
 );
 foreach ($list as $uid) { $userids[(int)$uid] = true; }
 
-// Plus anyone who submitted (safety net)
+// Everyone who made any submission
 $list2 = $DB->get_fieldset_sql(
     "SELECT DISTINCT userid FROM {spe_submission} WHERE speid = :s",
     ['s' => $cm->instance]
@@ -92,7 +81,7 @@ if (!$userids) {
 list($uinsql, $uinparams) = $DB->get_in_or_equal(array_keys($userids), SQL_PARAMS_NAMED, 'u');
 $users = $DB->get_records_select('user', "id $uinsql", $uinparams, '', 'id, firstname, lastname, username');
 
-// Aggregate peer-received ratings (exclude self-ratings)
+// Aggregate peer received ratings 
 $params = ['speid' => $cm->instance];
 
 $matrix = [];
@@ -118,7 +107,7 @@ foreach ($rs as $r) {
 }
 $rs->close();
 
-// Count unique raters per ratee (exclude self-ratings)
+// Count unique raters per ratee 
 $sqlraters = "SELECT rateeid, COUNT(DISTINCT raterid) AS raters
                 FROM {spe_rating}
                WHERE speid = :speid
@@ -126,8 +115,8 @@ $sqlraters = "SELECT rateeid, COUNT(DISTINCT raterid) AS raters
             GROUP BY rateeid";
 $raters = $DB->get_records_sql($sqlraters, $params);
 
-// --- Disparity detection (YES if any rater flagged disparity for that rateeid)
-$disparity = []; // rateeid => true
+// Disparity detection 
+$disparity = []; 
 $mgr = $DB->get_manager();
 if ($mgr->table_exists('spe_disparity')) {
     $disp_rows = $DB->get_records_sql("
@@ -141,7 +130,7 @@ if ($mgr->table_exists('spe_disparity')) {
     }
 }
 
-// --- Search bar
+// Search bar
 $searchurl = new moodle_url('/mod/spe/gradebook.php', ['id' => $cm->id]);
 echo html_writer::start_div('', ['style' => 'display:flex; justify-content:flex-end; margin-bottom:8px;']);
 echo html_writer::start_tag('form', [
@@ -154,12 +143,11 @@ echo html_writer::empty_tag('input', [
     'type' => 'text', 'name' => 'q', 'value' => s($q),
     'placeholder' => 'Search student', 'style' => 'max-width:260px;'
 ]);
-// keep raw sort from URL (so we preserve user-chosen column/dir after searching)
+
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sort', 'value' => s($sortparam)]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'dir',  'value' => s($dir)]);
 echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Search', 'class' => 'btn btn-secondary']);
 if ($q !== '') {
-    // If you want Clear to also reset sorting & hide arrow, omit sort/dir from this URL:
     $clearurl = new moodle_url('/mod/spe/gradebook.php', ['id' => $cm->id]);
     echo html_writer::link($clearurl, 'Clear');
 }
@@ -170,15 +158,11 @@ echo html_writer::end_div();
 $table = new html_table();
 $table->attributes['class'] = 'generaltable';
 
-// Helper to build sortable header links.
-// Important: use $sortparam (not $sort) to decide whether to show the arrow.
+// Headers with sorting links
 $baseurl = new moodle_url('/mod/spe/gradebook.php', ['id' => $cm->id, 'q' => $q]);
 $make_header = function(string $label, string $key) use ($baseurl, $sortparam, $dir) : string {
-    // If user already sorted by this key → toggle direction; else start at ASC
     $newdir = ($sortparam === $key && $dir === 'asc') ? 'desc' : 'asc';
     $url = new moodle_url($baseurl, ['sort' => $key, 'dir' => $newdir]);
-
-    // Only show arrow when the user explicitly chose this column
     $arrow = '';
     if ($sortparam === $key && $sortparam !== '') {
         $arrow = ($dir === 'asc') ? ' ▲' : ' ▼';
@@ -187,8 +171,8 @@ $make_header = function(string $label, string $key) use ($baseurl, $sortparam, $
 };
 
 $headlabels = [];
-$headlabels[] = $make_header('Student', 'name');     // Student shows no arrow until user clicks
-$headlabels[] = $make_header('Groups',  'groups');   // New column
+$headlabels[] = $make_header('Student', 'name');    
+$headlabels[] = $make_header('Groups',  'groups');   
 foreach ($criteria as $key => $label) {
     $headlabels[] = $make_header($label, $key);
 }
@@ -198,12 +182,10 @@ $headlabels[] = $make_header('Total (100%)',     'total');
 $headlabels[] = $make_header('Disparity',        'disparity');
 $table->head = array_map('strval', $headlabels);
 
-// Rows (collect first to allow post-build sorting)
 $table->data = [];
 $rows = [];
 
 foreach ($users as $uid => $u) {
-    // Apply search filter
     if ($qnorm !== '') {
         $namestr = core_text::strtolower(fullname($u) . ' (' . $u->username . ')');
         if (core_text::strpos($namestr, $qnorm) === false) { continue; }
@@ -215,7 +197,6 @@ foreach ($users as $uid => $u) {
     $row = [];
     $row[] = (string) html_writer::link($link, $name);
 
-    // Groups for this user (course-level)
     $groups = groups_get_all_groups($course->id, $uid, 0, 'g.id, g.name');
     $groupnames = [];
     if ($groups) {
@@ -226,7 +207,6 @@ foreach ($users as $uid => $u) {
     $groupsstr = $groupnames ? implode(', ', $groupnames) : '-';
     $row[] = (string)$groupsstr;
 
-    // Per-criterion sums (displayed)
     $sumtotal = 0;
     $percrit  = [];
     foreach ($criteria as $ckey => $_label) {
@@ -236,19 +216,19 @@ foreach ($users as $uid => $u) {
         $row[] = (string)$v;
     }
 
-    // Number of unique raters
+    // Number of raters
     $ratercount = isset($raters[$uid]) ? (int)$raters[$uid]->raters : 0;
 
-    // --- Evaluation (50%)
+    // Evaluation
     $eval50 = '-';
     if ($ratercount > 0) {
         $den = $ratercount * 25.0;
-        $ratio = $den > 0 ? ($sumtotal / $den) : 0.0;        // 0..1
+        $ratio = $den > 0 ? ($sumtotal / $den) : 0.0;        
         $ratio = max(0.0, min(1.0, $ratio));
-        $eval50 = round($ratio * 50.0, 1);                   // 0..50
+        $eval50 = round($ratio * 50.0, 1);                   
     }
 
-    // --- Sentiment (50%) — peer_comment only
+    // Sentiment
     $avgnorm = $DB->get_field_sql("
         SELECT AVG(s.sentiment)
           FROM {spe_sentiment} s
@@ -257,14 +237,14 @@ foreach ($users as $uid => $u) {
            AND s.type    = 'peer_comment'
     ", ['speid' => $cm->instance, 'uid' => $uid]);
 
-    if ($avgnorm === false || $avgnorm === null) { $avgnorm = 0.5; } // neutral if none
+    if ($avgnorm === false || $avgnorm === null) { $avgnorm = 0.5; }
     $avgnorm = (float)$avgnorm;
     if ($avgnorm < 0) $avgnorm = 0.0;
     if ($avgnorm > 1) $avgnorm = 1.0;
 
-    $sent50 = round($avgnorm * 50.0, 1);                      // 0..50
+    $sent50 = round($avgnorm * 50.0, 1);                      
 
-    // --- Total (100%)
+    // Total 
     $total100 = is_numeric($eval50) ? round($eval50 + $sent50, 1) : '-';
 
     // Append new columns
@@ -305,7 +285,7 @@ foreach ($users as $uid => $u) {
     ];
 }
 
-// -------- Post-build sort (uses effective $sort) --------
+// Sorting
 $validkeys = array_merge(
     ['name'=>true,'groups'=>true,'eval'=>true,'sent'=>true,'total'=>true,'disparity'=>true],
     array_fill_keys(array_keys($criteria), true)
@@ -330,12 +310,10 @@ usort($rows, function($a, $b) use ($sort, $dir) {
     return ($dir === 'asc') ? $cmp : -$cmp;
 });
 
-// Push sorted rows to table
 foreach ($rows as $r) {
     $table->data[] = $r['row'];
 }
 
-// Final hardening (headers/cells as strings)
 if (!empty($table->head)) {
     foreach ($table->head as $i => $h) {
         if ($h instanceof html_table_cell) { $h = $h->text; }
@@ -355,7 +333,6 @@ if (!empty($table->data)) {
     }
 }
 
-// Intro message
 echo (string) html_writer::div(
     (string) html_writer::tag('p',
         'Click a student’s name to see all individual raters with per-criterion scores and peer comments.'

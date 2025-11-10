@@ -1,8 +1,5 @@
 <?php
 
-// -----------------------------------------------------------------------------
-// Bootstrap & security
-// -----------------------------------------------------------------------------
 require('../../config.php');
 
 $cmid   = required_param('id', PARAM_INT);
@@ -12,16 +9,22 @@ $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
 require_course_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 
-// -----------------------------------------------------------------------------
-// Page setup
-// -----------------------------------------------------------------------------
+# Setup page
 $PAGE->set_url('/mod/spe/view.php', ['id' => $cm->id]);
 $PAGE->set_title('Self and Peer Evaluation');
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
 $PAGE->add_body_class('spe-compact spe-left');
 
-// Instructor dashboard quick link
+// Instructor dashboard
+if (has_capability('mod/spe:manage', $context) && !is_siteadmin()) {
+    redirect(
+        new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]),
+        null, // no message
+        0     // immediate
+    );
+    exit;
+}
 if (has_capability('mod/spe:manage', $context)) {
     $PAGE->set_button(
         $OUTPUT->single_button(
@@ -32,9 +35,12 @@ if (has_capability('mod/spe:manage', $context)) {
     );
 }
 
-// -----------------------------------------------------------------------------
-// Double-submission guard (before rendering form)
-// -----------------------------------------------------------------------------
+
+// Score ranges 
+const SPE_SCORE_MIN = 5;   
+const SPE_SCORE_MAX = 25;  
+
+// Only one time submission
 $existing = $DB->get_record('spe_submission', [
     'speid'  => $cm->instance,
     'userid' => $USER->id
@@ -46,9 +52,7 @@ if ($existing) {
     exit;
 }
 
-// -----------------------------------------------------------------------------
-// Render header and basic instructions
-// -----------------------------------------------------------------------------
+# Render page header
 echo $OUTPUT->header();
 echo $OUTPUT->heading('Self and Peer Evaluation');
 
@@ -64,14 +68,9 @@ echo html_writer::tag('div', '
     </ul>
 ', ['class' => 'spe-instructions']);
 
-// -----------------------------------------------------------------------------
-// Helpers, constants, and configuration
-// -----------------------------------------------------------------------------
 
-/**
- * Count words similarly to the original PHP side:
- * regex: /[\p{L}\p{N}’']+/u
- */
+
+// Function to count words 
 function spe_wordcount(string $text): int {
     if (preg_match_all("/[\\p{L}\\p{N}’']+/u", $text, $m)) {
         return count($m[0]);
@@ -79,11 +78,8 @@ function spe_wordcount(string $text): int {
     return 0;
 }
 
-// Score ranges (used by UI/instructor policy; not enforced server-side except min-words)
-const SPE_SCORE_MIN = 5;   // 5 criteria * 1
-const SPE_SCORE_MAX = 25;  // 5 criteria * 5
 
-// Criteria shown for scoring (keys used to persist ratings)
+// Criteria
 $criteria = [
     'effortdocs'    => 'The amount of work and effort put into the Requirements/Analysis Document, the Project Management Plan, and the Design Document.',
     'teamwork'      => 'Willingness to work as part of the group and taking responsibility.',
@@ -92,7 +88,7 @@ $criteria = [
     'problemsolve'  => 'Problem solving and creativity for the group’s work.'
 ];
 
-// Gather peers (same Moodle group as the current user)
+// Gather peers 
 $peers = [];
 $usergroups = groups_get_user_groups($course->id, $USER->id);
 if (!empty($usergroups[0])) {
@@ -110,12 +106,12 @@ if (!empty($usergroups[0])) {
 // POST/GET flags
 $submitted = optional_param('submitted', 0, PARAM_INT);
 
-// Draft autosave preference key
+// Draft 
 $draftkey  = 'mod_spe_draft_' . $cm->id;
 $rawdraft  = (string) get_user_preferences($draftkey, '', $USER);
 $draftdata = $rawdraft ? json_decode($rawdraft, true) : null;
 
-// Prefill defaults
+// Prefill 
 $prefill = [
     'selfdesc'   => '',
     'reflection' => '',
@@ -124,7 +120,7 @@ $prefill = [
     'peertexts'  => []
 ];
 
-// Merge draft into prefill (GET only; if POST, we use the POST values)
+// Merge draft into prefill 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $draftdata) {
     foreach (['selfdesc','reflection'] as $k) {
         if (!empty($draftdata[$k]) && is_string($draftdata[$k])) {
@@ -142,12 +138,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $draftdata) {
     }
 }
 
-// -----------------------------------------------------------------------------
-// Handle submission
-// -----------------------------------------------------------------------------
+// Submission handling
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
 
-    // 1) Collect inputs
+    // collect inputs
     $selfdesc   = trim(optional_param('selfdesc', '', PARAM_RAW));
     $reflection = trim(optional_param('reflection', '', PARAM_RAW));
 
@@ -174,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
         'peertexts'  => $peertexts
     ];
 
-    // 2) Validate
+    // Validate
     $errors   = [];
     $refwords = spe_wordcount($reflection);
     if ($refwords < 100) {
@@ -189,14 +183,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
 
     } else {
 
-        // 3) Guard against double insert (race)
+        // Prevent double insert 
         if ($DB->record_exists('spe_submission', ['speid' => $cm->instance, 'userid' => $USER->id])) {
             $submissionurl = new moodle_url('/mod/spe/submission.php', ['id' => $cm->id]);
             redirect($submissionurl, get_string('alreadysubmitted', 'mod_spe'), 2);
             exit;
         }
 
-        // 4) Insert the core submission
+        // Insert core submission
         $DB->insert_record('spe_submission', (object)[
             'speid'       => $cm->instance,
             'userid'      => $USER->id,
@@ -207,10 +201,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
             'timemodified'=> time()
         ]);
 
-        // 5) Reset and insert ratings
+        // Reset and insert ratings
         $DB->delete_records('spe_rating', ['speid' => $cm->instance, 'raterid' => $USER->id]);
 
-        // 5a) Self scores (criterion rows for self)
+        // Self scores
         foreach ($criteria as $key => $label) {
             $score = $selfscores[$key] ?? 0;
             if ($score >= 1 && $score <= 5) {
@@ -226,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
             }
         }
 
-        // 5b) Peer scores (criterion rows per teammate)
+        // Peer scores
         foreach ($peers as $p) {
             $peercomment = $peertexts[$p->id] ?? '';
             foreach ($criteria as $key => $label) {
@@ -245,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
             }
         }
 
-        // 6) Queue text for sentiment analysis (server-side only; status='pending')
+        // Queue text for sentiment analysis
         if ($DB->get_manager()->table_exists('spe_sentiment')) {
 
             // Queue each peer comment
@@ -254,17 +248,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
                 if ($peercomment !== '') {
                     $DB->insert_record('spe_sentiment', (object)[
                         'speid'       => $cm->instance,
-                        'raterid'     => $USER->id,    // who wrote it
-                        'rateeid'     => $p->id,       // who it's about
+                        'raterid'     => $USER->id,    
+                        'rateeid'     => $p->id,       
                         'type'        => 'peer_comment',
                         'text'        => $peercomment,
-                        'status'      => 'pending',     // pending until instructor/cron processes
+                        'status'      => 'pending',     
                         'timecreated' => time()
                     ]);
                 }
             }
 
-            // Queue the reflection (replace any existing pending one from this rater)
+            // Queue reflection
             if ($reflection !== '') {
                 $DB->delete_records('spe_sentiment', [
                     'speid'   => $cm->instance,
@@ -283,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
                 ]);
             }
 
-            // Queue the self-description (selfdesc) text
+            // Queue self-description
             if ($selfdesc !== '') {
                 $DB->delete_records('spe_sentiment', [
                     'speid'   => $cm->instance,
@@ -294,8 +288,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
 
                 $DB->insert_record('spe_sentiment', (object)[
                     'speid'       => $cm->instance,
-                    'raterid'     => $USER->id,  // author
-                    'rateeid'     => $USER->id,  // about self
+                    'raterid'     => $USER->id,  
+                    'rateeid'     => $USER->id,  
                     'type'        => 'selfdesc',
                     'text'        => $selfdesc,
                     'status'      => 'pending',
@@ -305,7 +299,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
 
         }
 
-        // 8) Clean up draft and redirect to the submission page
+        // Clear draft
         unset_user_preference($draftkey, $USER);
         $submissionurl = new moodle_url('/mod/spe/submission.php', ['id' => $cm->id]);
         redirect($submissionurl, 'Your submission has been saved successfully!', 2);
@@ -313,9 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
     }
 }
 
-// -----------------------------------------------------------------------------
-// Render the form (GET or POST with validation errors)
-// -----------------------------------------------------------------------------
+// Render form
 if (!$submitted) {
 
     echo html_writer::start_tag('form', [
@@ -326,7 +318,7 @@ if (!$submitted) {
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'submitted', 'value' => 1]);
 
-    // --- Self Evaluation (scores) ---
+    // Self Evaluation 
     echo html_writer::tag('h3', 'Self Evaluation');
     $sel = $prefill['selfscores'] ?? [];
     foreach ($criteria as $key => $label) {
@@ -340,7 +332,7 @@ if (!$submitted) {
         echo '</select><br>';
     }
 
-    // --- Self description (text) ---
+    // Self description
     echo html_writer::tag('h4', 'Briefly describe how you believe you contributed to the project process:');
     echo html_writer::tag('textarea', $prefill['selfdesc'] ?? '', [
         'name'  => 'selfdesc',
@@ -349,7 +341,7 @@ if (!$submitted) {
         'class' => 'spe-textarea'
     ]);
 
-    // --- Reflection (text) ---
+    // Reflection
     echo html_writer::tag('h4', 'Reflection (minimum 100 words)');
     echo html_writer::tag('textarea', $prefill['reflection'] ?? '', [
         'name'  => 'reflection',
@@ -358,7 +350,7 @@ if (!$submitted) {
         'class' => 'spe-textarea'
     ]);
 
-    // --- Peer Evaluation (scores + comment per teammate) ---
+    // Peer Evaluation
     if (!empty($peers)) {
         echo html_writer::tag('h3', 'Evaluation of Team Members');
 
@@ -397,10 +389,7 @@ if (!$submitted) {
     echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Submit']);
     echo html_writer::end_tag('form');
 
-    // -------------------------------------------------------------------------
-    // Minimal styles + scripts
-    // -------------------------------------------------------------------------
-    // Offline word-count HUD (under each textarea). No API, no network.
+
     echo '<style>
         .spe-textarea { display:block; width: 100%; max-width: 900px; }
         .spe-wc-hud   { margin-top: 6px; font-size: 12px; color: #6b7280; }
@@ -409,7 +398,7 @@ if (!$submitted) {
     ?>
     <script>
     (function () {
-        // ---------- AUTOSAVE DRAFT (unchanged logic, local endpoint draft.php) ----------
+        // Autosave draft functionality
         const form = document.querySelector('form[action*="/mod/spe/view.php"]');
         if (!form) return;
 
@@ -511,7 +500,7 @@ if (!$submitted) {
             } catch(e) {}
         })();
 
-        // ---------- OFFLINE WORD COUNT HUD (no API) ----------
+        // Word count
         function wordCount(text) {
             try {
                 const m = text.match(/[\p{L}\p{N}’']+/gu);
@@ -538,7 +527,6 @@ if (!$submitted) {
             update();
         }
 
-        // Apply to selfdesc, reflection, and all peer comment textareas
         attachHud(document.querySelector('textarea[name="selfdesc"]'));
         attachHud(document.querySelector('textarea[name="reflection"]'));
         document.querySelectorAll('textarea[name^="comment_"]').forEach(attachHud);
@@ -548,7 +536,4 @@ if (!$submitted) {
     <?php
 }
 
-// -----------------------------------------------------------------------------
-// Footer
-// -----------------------------------------------------------------------------
 echo $OUTPUT->footer();

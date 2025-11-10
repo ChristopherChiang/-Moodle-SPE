@@ -24,7 +24,6 @@ if (!$returnurl) {
     $returnurl = $ref ? $ref : (new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]))->out(false);
 }
 
-// If userid isn't passed explicitly, try to infer from returnurl (when coming from grade_detail.php)
 if (!$userid && $returnurl) {
     $parts = parse_url($returnurl);
     if (!empty($parts['query'])) {
@@ -60,7 +59,7 @@ if (!$download) {
     exit;
 }
 
-// -------------------- Download mode --------------------
+// -Export PDF
 if (class_exists('\core\session\manager')) { \core\session\manager::write_close(); }
 while (ob_get_level()) { ob_end_clean(); }
 ignore_user_abort(true);
@@ -76,18 +75,16 @@ $fail = function(string $msg) {
     exit;
 };
 
-// ===== Shared helpers =====
-
-// Gradebook criteria labels (must match gradebook.php)
+// Gradebook criteria labels
 $CRITERIA = [
-    'effortdocs'    => 'Effort on docs',
+    'effortdocs'    => 'Effort',
     'teamwork'      => 'Teamwork',
     'communication' => 'Communication',
     'management'    => 'Management',
     'problemsolve'  => 'Problem solving',
 ];
 
-// Load disparity presence per rateeid
+// Load disparity per rateeid
 function spe_load_disparity_map_for_rateeids(int $speid, array $rateeids): array {
     global $DB;
     if (empty($rateeids)) return [];
@@ -102,7 +99,7 @@ function spe_load_disparity_map_for_rateeids(int $speid, array $rateeids): array
     return $map;
 }
 
-// Sentiment label getter (mirrors grade_detail.php logic)
+// Sentiment label 
 function spe_get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, string $comment): string {
     global $DB;
     $mgr = $DB->get_manager();
@@ -139,9 +136,8 @@ function spe_get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid
     return '';
 }
 
-// ===== MODE 1: grade_detail export (if $userid > 0) =====
+// Grade_detail export
 if ($userid > 0) {
-    // Pull all peer ratings for this ratee (exclude self)
     $rows = $DB->get_records_sql("
         SELECT r.id, r.raterid, r.criterion, r.score, r.comment, r.timecreated
           FROM {spe_rating} r
@@ -181,12 +177,11 @@ if ($userid > 0) {
     $ratee = core_user::get_user($userid, 'id,firstname,lastname,username', IGNORE_MISSING);
     $ratee_name = $ratee ? (fullname($ratee) . ' (' . $ratee->username . ')') : (string)$userid;
 
-    // Title (mirrors page)
+    // Title 
     $pdf->SetFont('helvetica', 'B', 13);
     $pdf->Cell(0, 8, 'Ratings received by: ' . $ratee_name, 0, 1);
     $pdf->Ln(1.5);
 
-    // Column widths for the small Criterion/Score table
     $wCrit = 90; // Criterion
     $wScore = 30; // Score
 
@@ -199,7 +194,7 @@ if ($userid > 0) {
         $pdf->Cell(0, 6, 'Rater: ' . $rname, 0, 1);
         $pdf->Ln(0.5);
 
-        // Build per-criterion scores & single comment + total (like page)
+        // Build per-criterion scores 
         $critvals = [];
         $comment  = '';
         $total    = 0;
@@ -215,7 +210,6 @@ if ($userid > 0) {
             }
         }
 
-        // Small table: Criterion | Score
         $pdf->SetFont('helvetica', 'B', 9);
         $pdf->Cell($wCrit, 7, 'Criterion', 1);
         $pdf->Cell($wScore, 7, 'Score', 1, 1, 'C');
@@ -233,7 +227,7 @@ if ($userid > 0) {
         $pdf->SetFont('helvetica', '', 9);
         $pdf->Ln(1.2);
 
-        // Comment (single)
+        // Comment box
         $pdf->SetFont('helvetica', 'B', 9.5);
         $pdf->Cell(0, 5.5, 'Comment:', 0, 1);
         $pdf->SetFont('helvetica', '', 9);
@@ -242,7 +236,7 @@ if ($userid > 0) {
         $pdf->MultiCell(0, 5.5, $comment_oneline, 1, 'L', false, 1);
         $pdf->Ln(1);
 
-        // Sentiment & Disparity line (mirrors page semantics)
+        // Sentiment & Disparity line 
         $sentlabel = spe_get_sentiment_label_for_pair($speid, (int)$rid, (int)$userid, (string)$comment_oneline);
         $sentlabel = ($sentlabel === '') ? '—' : $sentlabel;
 
@@ -264,7 +258,7 @@ if ($userid > 0) {
 
         // Separator
         $pdf->Ln(1.5);
-        $pdf->Cell(0, 0, '', 'T', 1); // horizontal rule
+        $pdf->Cell(0, 0, '', 'T', 1); 
         $pdf->Ln(2.0);
     }
 
@@ -274,20 +268,16 @@ if ($userid > 0) {
     exit;
 }
 
-// ===== MODE 2: gradebook export (default if no userid) =====
+// Gradebook export
 
-// Build the same dataset as gradebook.php
-// 1) Collect participants
 $userids = [];
 
-// ratees with any received rating
 $list = $DB->get_fieldset_sql(
     "SELECT DISTINCT rateeid FROM {spe_rating} WHERE speid = :s",
     ['s' => $speid]
 );
 foreach ($list as $uid) { $userids[(int)$uid] = true; }
 
-// plus anyone who submitted (safety)
 $list2 = $DB->get_fieldset_sql(
     "SELECT DISTINCT userid FROM {spe_submission} WHERE speid = :s",
     ['s' => $speid]
@@ -299,7 +289,6 @@ if (!$userids) { $fail('No participants detected for this activity.'); }
 list($uinsql, $uinparams) = $DB->get_in_or_equal(array_keys($userids), SQL_PARAMS_NAMED, 'u');
 $users = $DB->get_records_select('user', "id $uinsql", $uinparams, '', 'id, firstname, lastname, username');
 
-// 2) Aggregate Σ per criterion per rateeid (exclude self)
 $params = ['speid' => $speid];
 $matrix = [];
 $rs = $DB->get_recordset_sql("
@@ -321,7 +310,7 @@ foreach ($rs as $r) {
 }
 $rs->close();
 
-// 3) Count distinct raters per rateeid (exclude self)
+// Rater counts
 $sqlraters = "SELECT rateeid, COUNT(DISTINCT raterid) AS raters
                 FROM {spe_rating}
                WHERE speid = :speid
@@ -329,10 +318,10 @@ $sqlraters = "SELECT rateeid, COUNT(DISTINCT raterid) AS raters
             GROUP BY rateeid";
 $raters = $DB->get_records_sql($sqlraters, $params);
 
-// 4) Disparity map
+// Disparity map
 $disparity = spe_load_disparity_map_for_rateeids($speid, array_keys($users));
 
-// ---- Render PDF table like the Grade book page ----
+// Render PDF table 
 $pdf = new pdf('L', 'mm', 'A4');
 $pdf->SetCreator('Moodle SPE');
 $pdf->SetAuthor('Moodle SPE Module');
@@ -347,7 +336,6 @@ $pdf->Cell(0, 8, 'SPE — Grade book', 0, 1, 'C');
 $pdf->Ln(2);
 $pdf->SetFont('helvetica', '', 9);
 
-// Column widths (Student + 5 criteria + Total + Avg + Disparity)
 $usableW = $pdf->getPageWidth() - $pdf->getMargins()['left'] - $pdf->getMargins()['right'];
 $ratios = [
     'student'=>0.26,
@@ -365,7 +353,6 @@ foreach ($ratios as $k=>$v) { $ratios[$k] = $v / $sumr; }
 $w = [];
 foreach ($ratios as $k=>$v) { $w[$k] = round($usableW * $v, 2); }
 
-// Header row
 $pdf->SetFont('helvetica', 'B', 9);
 $pdf->Cell($w['student'], 7, 'Student', 1);
 $labels = array_values($CRITERIA);
@@ -379,14 +366,12 @@ $pdf->Cell($w['avg'],   7, 'Average per rater', 1, 0, 'C');
 $pdf->Cell($w['disp'],  7, 'Disparity', 1, 1, 'C');
 $pdf->SetFont('helvetica', '', 9);
 
-// Rows
 $rowH = 6.5;
 foreach ($users as $uid => $u) {
     $name = fullname($u) . ' (' . $u->username . ')';
 
     $vals = [];
     $sumtotal = 0;
-    // Using the same order as $CRITERIA
     $i = 0;
     foreach ($CRITERIA as $ckey => $_label) {
         $v = isset($matrix[$uid][$ckey]) ? (int)$matrix[$uid][$ckey] : 0;
@@ -397,7 +382,6 @@ foreach ($users as $uid => $u) {
     $avg = $ratercount > 0 ? round($sumtotal / $ratercount, 2) : '-';
     $disp = !empty($disparity[$uid]) ? 'Yes' : '';
 
-    // Row cells
     $pdf->Cell($w['student'], $rowH, $name, 1);
     $pdf->Cell($w['c1'], $rowH, (string)$vals[0], 1, 0, 'C');
     $pdf->Cell($w['c2'], $rowH, (string)$vals[1], 1, 0, 'C');

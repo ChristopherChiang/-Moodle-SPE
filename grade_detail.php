@@ -1,10 +1,4 @@
 <?php
-// mod/spe/grade_detail.php
-//
-// STEP 3: Display the fetched sentiment label (disparity still placeholder).
-// Shows peers who rated a student, per-criterion scores, comment, and
-// badges under the comment. Sentiment is now shown with color heuristics;
-// Disparity remains as "—" placeholder (will wire up in Steps 4–5).
 
 require('../../config.php');
 
@@ -27,7 +21,7 @@ $PAGE->set_pagelayout('incourse');
 
 echo $OUTPUT->header();
 
-// === Export links (CSV | PDF) ABOVE the heading ===
+// Export links
 if (has_capability('mod/spe:viewreports', $context)) {
     $here    = $PAGE->url->out_as_local_url(false);
     $csvpage = new moodle_url('/mod/spe/export_csv.php', ['id' => $cm->id, 'returnurl' => $here]);
@@ -43,16 +37,16 @@ if (has_capability('mod/spe:viewreports', $context)) {
 
 echo $OUTPUT->heading('Ratings received by: ' . fullname($ratee) . ' (' . s($ratee->username) . ')');
 
-// Criteria labels (keep in sync with gradebook.php/view.php)
+// Criteria labels 
 $criteria = [
-    'effortdocs'    => 'Effort on docs',
+    'effortdocs'    => 'Effort',
     'teamwork'      => 'Teamwork',
     'communication' => 'Communication',
     'management'    => 'Management',
     'problemsolve'  => 'Problem solving',
 ];
 
-// Pull all peer ratings for this ratee in this activity (exclude self)
+// Pull all peer ratings for this ratee in this activity 
 $sql = "SELECT
             r.id,
             r.raterid,
@@ -93,21 +87,21 @@ if ($raterids) {
     $rusers = $DB->get_records_select('user', "id $rinsql", $rinparams, '', 'id, firstname, lastname, username');
 }
 
-// Helper: pill/badge renderer
+// Badge renderer
 $badge = function(string $text, string $bg = '#eee', string $fg = '#000'): string {
     return (string) html_writer::tag('span', $text, [
         'style' => "display:inline-block;background:{$bg};color:{$fg};padding:2px 8px;border-radius:10px;font-weight:600;"
     ]);
 };
 
-// Schema-agnostic sentiment getter
+// Function to get sentiment label for a (rater -> ratee) pair and comment
 $mgr = $DB->get_manager();
 $get_sentiment_label = function(int $raterid, int $rateeid, string $comment) use ($DB, $cm, $mgr): string {
     if (!$mgr->table_exists('spe_sentiment')) {
         return '';
     }
 
-    // Exact text match first (fields='*' to tolerate schema differences)
+    // Exact match first
     $rec = $DB->get_record_select(
         'spe_sentiment',
         "speid = :speid AND raterid = :raterid AND rateeid = :rateeid AND type = :type AND text = :text",
@@ -122,7 +116,7 @@ $get_sentiment_label = function(int $raterid, int $rateeid, string $comment) use
         IGNORE_MULTIPLE
     );
 
-    // Fallback: latest peer_comment for the pair
+    // If not found, get the latest one for this pair
     if (!$rec) {
         $recs = $DB->get_records(
             'spe_sentiment',
@@ -151,7 +145,6 @@ foreach ($byrater as $rid => $items) {
 
     echo html_writer::tag('h3', 'Rater: ' . $rname);
 
-    // Build per-criterion scores & get a single comment (dedup)
     $critvals = [];
     $comment  = '';
     $total    = 0;
@@ -183,11 +176,11 @@ foreach ($byrater as $rid => $items) {
 
     echo html_writer::table($table);
 
-    // Comment (escape only — no filters to avoid array/format surprises)
+    // Comment 
     echo html_writer::tag('p', html_writer::tag('strong', 'Comment:'));
     echo html_writer::tag('blockquote', s($comment));
 
-    // STEP 3 — DISPLAY the fetched sentiment label
+    // Sentiment label badge
     $sentlabel = $get_sentiment_label($rid, $ratee->id, (string)$comment);
     if ($sentlabel !== '') {
         $sentlc = core_text::strtolower($sentlabel);
@@ -204,10 +197,9 @@ foreach ($byrater as $rid => $items) {
         $sentbadge = $badge('Sentiment: —', '#e9e9e9', '#333');
     }
     
-    // start clean for this rater
     $badgeline = '';
 
-    // Fetch disparity row for this (rater -> ratee) pair
+    // Fetch disparity row 
     $disp = $DB->get_record('spe_disparity', [
         'speid'   => $cm->instance,
         'raterid' => (int)$rid,
@@ -217,7 +209,6 @@ foreach ($byrater as $rid => $items) {
     $hasdisp = ($disp && (int)$disp->isdisparity === 1);
 
     if ($hasdisp) {
-        // Combine both label and reason into one styled box
         $reason = trim((string)($disp->commenttext ?? ''));
 
         $content = html_writer::tag('strong', 'Disparity: Yes');
@@ -228,7 +219,6 @@ foreach ($byrater as $rid => $items) {
             ]);
         }
 
-        // Single combined badge box
         $badgeline .= html_writer::div($content, '', [
             'style' => 'display:inline-block; background:#fff69b; color:#333; border-radius:12px; padding:4px 10px; font-size:15px; margin-right:6px;'
         ]);

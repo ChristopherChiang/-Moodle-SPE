@@ -1,10 +1,4 @@
 <?php
-// mod/spe/group_approve.php
-//
-// Approve Group Scores:
-// - Evaluation (from spe_rating): average per-rater total on a 0..20 scale.
-// - Sentiment (from spe_sentiment.sentiment): normalized 0..1 (peer_comment only).
-// - Combined: 50% evaluation + 50% sentiment => 0..100%, and also saved as total_score (0..20).
 
 require('../../config.php');
 
@@ -17,19 +11,16 @@ $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
 require_course_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 
-// Must be manager
 require_capability('mod/spe:manage', $context);
 
-// Page
+// Setup Page
 $PAGE->set_url('/mod/spe/group_approve.php', ['id' => $cm->id]);
 $PAGE->set_title('Approve Group Scores');
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
 
-// All groups
 $allgroups = groups_get_all_groups($course->id);
 
-// Map user -> group name
 $usergroup = [];
 foreach ($allgroups as $g) {
     $members = groups_get_members($g->id, 'u.id, u.firstname, u.lastname, u.username');
@@ -40,13 +31,12 @@ foreach ($allgroups as $g) {
     }
 }
 
-// All ratings for this activity
+// Ratings for activity
 $ratings = $DB->get_records('spe_rating', ['speid' => $cm->instance], 'rateeid, raterid, id');
 
-// Build sums per (ratee <- rater), excluding self-ratings
-$received = [];   // [rateeid]['sumfrom'][raterid] => total points
-$raterset = [];   // [rateeid][raterid] => true
-
+// Aggregate received ratings per user
+$received = [];   
+$raterset = [];  
 foreach ($ratings as $r) {
     if ((int)$r->rateeid === (int)$r->raterid) {
         continue;
@@ -58,7 +48,7 @@ foreach ($ratings as $r) {
     $raterset[$r->rateeid][$r->raterid] = true;
 }
 
-// Compute per-user results: 50% evaluation (ratings) + 50% sentiment (normalized 0..1 from spe_sentiment.sentiment)
+// Compute combined scores
 $rows = [];
 foreach ($received as $uid => $info) {
     $totals = array_values($info['sumfrom'] ?? []);
@@ -67,11 +57,8 @@ foreach ($received as $uid => $info) {
         continue;
     }
 
-    // 1) Evaluation from ratings (avg per rater), on a 0..20 scale
-    $avgpoints = array_sum($totals) / $numraters; // assumes your rubric max totals 20 per rater
+    $avgpoints = array_sum($totals) / $numraters;
 
-    // 2) Sentiment from spe_sentiment (already normalized 0..1)
-    //    Average over peer comments for this ratee in this activity.
     $avgnorm = $DB->get_field_sql("
         SELECT AVG(s.sentiment)
           FROM {spe_sentiment} s
@@ -81,7 +68,6 @@ foreach ($received as $uid => $info) {
     ", ['speid' => $cm->instance, 'uid' => $uid]);
 
     if ($avgnorm === false || $avgnorm === null) {
-        // If no sentiment, treat as neutral (you can switch to 0.0 if you prefer)
         $avgnorm = 0.5;
     } else {
         $avgnorm = (float)$avgnorm;
@@ -89,43 +75,33 @@ foreach ($received as $uid => $info) {
         if ($avgnorm > 1) $avgnorm = 1.0;
     }
 
-    // 3) Combine to 0..100, each worth 50%
-    //    - evaluation% = (avgpoints / 20) * 100
-    //    - sentiment%  = avgnorm * 100
     $combined_0to100 =
         (($avgpoints / 25.0) * 100.0 * 0.5) +
         ($avgnorm * 100.0 * 0.5);
 
-    // Clamp safety
     if ($combined_0to100 < 0)   $combined_0to100 = 0.0;
     if ($combined_0to100 > 100) $combined_0to100 = 100.0;
 
-    // 4) Convert combined% back to your 0..20 “total score”
-    //    100% == 20 points  → divide by 5
     $total_score = $combined_0to100 / 4.0;
-
-    // Optional display helpers
     $percent = round($combined_0to100, 1);
     $stars   = round(($percent * 5.0) / 100.0, 2);
 
-    // For compatibility with earlier fields you saved:
-    // derive a pseudo 'compound' (-1..1) from normalized (0..1)
     $compound = ($avgnorm * 2.0) - 1.0;
 
     $rows[$uid] = [
         'userid'      => (int)$uid,
         'group'       => $usergroup[$uid] ?? 'Ungrouped',
-        'avgpoints'   => round($avgpoints, 3),      // 0..20 average across raters
-        'compound'    => round($compound, 3),       // -1..1, derived from normalized
-        'normalized'  => round($avgnorm, 3),        // 0..1 from spe_sentiment.sentiment
-        'percent'     => $percent,                  // 0..100 combined
-        'stars'       => $stars,                    // 0..5 visual
+        'avgpoints'   => round($avgpoints, 3),      
+        'compound'    => round($compound, 3),       
+        'normalized'  => round($avgnorm, 3),        
+        'percent'     => $percent,                  
+        'stars'       => $stars,                    
         'raters'      => $numraters,
-        'total_score' => round($total_score, 3)     // 0..20 combined
+        'total_score' => round($total_score, 3)   
     ];
 }
 
-// Publish to user preferences (used by gradebook.php)
+// Publish to user preferences 
 if ($approve && confirm_sesskey()) {
     foreach ($rows as $uid => $d) {
         $prefname = 'mod_spe_groupscore_' . $cm->id;
@@ -137,7 +113,6 @@ if ($approve && confirm_sesskey()) {
     );
 }
 
-// ----- Render -----
 echo $OUTPUT->header();
 echo $OUTPUT->heading('Approve Group Scores');
 

@@ -21,7 +21,7 @@ $u           = $DB->get_record('user', ['id' => $userid], 'id,firstname,lastname
 $spe         = $DB->get_record('spe',  ['id' => $cm->instance], '*', IGNORE_MISSING);
 $submission  = $DB->get_record('spe_submission', ['speid' => $cm->instance, 'userid' => $userid], '*', IGNORE_MISSING);
 
-// ratings GIVEN by this user (raterid = $userid)
+// ratings GIVEN by this user 
 $ratings = $DB->get_records('spe_rating',
     ['speid' => $cm->instance, 'raterid' => $userid],
     'rateeid, id',
@@ -48,7 +48,7 @@ $pdf->Ln(2);
 $pdf->SetFont('helvetica', '', 11);
 $pdf->Cell(0, 7, 'Student: '.fullname($u).' ('.$u->username.')', 0, 1, 'L');
 
-// Keep "Last modified" at top, but DO NOT print reflection here (printed later under self).
+// Submission last modified
 if ($submission) {
     $when = userdate($submission->timemodified ?: $submission->timecreated);
     $pdf->Cell(0, 7, 'Last modified: '.$when, 0, 1, 'L');
@@ -62,7 +62,7 @@ $pdf->Cell(0, 7, 'Ratings given', 0, 1, 'L');
 $pdf->SetFont('', '', 11);
 
 if ($ratings) {
-    // Prefetch names for all distinct ratee IDs.
+    // Fetch names of ratees
     $ids = array_unique(array_map(function($r){ return (int)$r->rateeid; }, $ratings));
     $names = [];
     if (!empty($ids)) {
@@ -76,16 +76,12 @@ if ($ratings) {
         $byratee[(int)$r->rateeid][] = $r;
     }
 
-    // --------- NEW RENDERING ORDER ----------
-    // 1) SELF: scores → comments → reflection
-    // 2) OTHERS (alphabetical): scores → comments
-
     // Name resolver
     $name_of = function(int $uid) use ($names) {
         return isset($names[$uid]) ? fullname($names[$uid]) : "User ID $uid";
     };
 
-    // Helper: render scores list
+    // Render scores list
     $render_scores = function(array $items) use ($pdf) {
         $pdf->SetFont('', '', 11);
         foreach ($items as $r) {
@@ -95,7 +91,7 @@ if ($ratings) {
         }
     };
 
-    // Helper: render unique non-empty comments (deduped)
+    // Render unique non-empty comments
     $render_comments = function(array $items) use ($pdf) {
         $seen = [];
         $uniqcomments = [];
@@ -120,7 +116,7 @@ if ($ratings) {
         }
     };
 
-    // --- 1) SELF section ---
+    // Self rating
     if (!empty($byratee[$userid])) {
         $selfitems = $byratee[$userid];
 
@@ -133,7 +129,7 @@ if ($ratings) {
         // Comments
         $render_comments($selfitems);
 
-        // Reflection (only for self and if provided)
+        // Reflection
         if ($submission && trim((string)$submission->reflection) !== '') {
             $pdf->Ln(1);
             $pdf->SetFont('', 'B', 11);
@@ -142,10 +138,10 @@ if ($ratings) {
             $pdf->MultiCell(0, 6, format_string($submission->reflection, true), 0, 'L');
         }
 
-        $pdf->Ln(2); // spacer
+        $pdf->Ln(2);
     }
 
-    // --- 2) OTHER ratees (alphabetical by fullname) ---
+    // Ratees
     $otherids = array_diff(array_keys($byratee), [$userid]);
     usort($otherids, function($a, $b) use ($name_of) {
         return strcasecmp($name_of((int)$a), $name_of((int)$b));
@@ -163,7 +159,7 @@ if ($ratings) {
         // Comments
         $render_comments($items);
 
-        $pdf->Ln(2); // spacer
+        $pdf->Ln(2)
     }
 
 } else {

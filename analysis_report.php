@@ -25,7 +25,7 @@ echo html_writer::tag('style', '
 .spe-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; font-size:12px; color:#555; }
 ');
 
-// Helper to build a display name without triggering fullname()
+// Helper to build a display name 
 $mkname = function(string $first = '', string $last = ''): string {
     return format_string(trim($first . ' ' . $last));
 };
@@ -33,20 +33,17 @@ $mkname = function(string $first = '', string $last = ''): string {
 $mgr    = $DB->get_manager();
 $params = ['speid' => $cm->instance];
 
-// ============================
-// [ADD] Tunable mismatch rules
-// ============================
+// Disparity / mismatch rules
 $RULES = (object)[
-    'hi_score_threshold' => 4.0,   // >= 4.0/5 considered high
-    'lo_score_threshold' => 2.0,   // <= 2.0/5 considered low
-    'neg_sent_threshold' => 0.35,  // <= 0.35 considered negative sentiment
-    'pos_sent_threshold' => 0.65   // >= 0.65 considered positive sentiment
+    'hi_score_threshold' => 4.0,   
+    'lo_score_threshold' => 2.0,   
+    'neg_sent_threshold' => 0.35,  
+    'pos_sent_threshold' => 0.65   
 ];
 
 // Load disparities key
 $disparities = [];
 if ($mgr->table_exists('spe_disparity')) {
-    // [CHG] Only rows explicitly marked as disparity
     $sqldisp = "SELECT d.raterid, d.rateeid, d.label, d.scoretotal, d.timecreated
                   FROM {spe_disparity} d
                  WHERE d.speid = :speid
@@ -58,12 +55,12 @@ if ($mgr->table_exists('spe_disparity')) {
             'label'      => (string)($d->label ?? ''),
             'scoretotal' => (int)($d->scoretotal ?? 0),
             'time'       => (int)$d->timecreated,
-            'source'     => 'table' // [ADD] mark source
+            'source'     => 'table' 
         ];
     }
 }
 
-// [ADD] Prefetch average peer-comment sentiment per rater->ratee pair
+// Load paired sentiment averages
 $pairsent = [];
 if ($mgr->table_exists('spe_sentiment')) {
     $sqlpairsent = "SELECT s.raterid, s.rateeid, AVG(s.sentiment) AS avgsent
@@ -108,7 +105,6 @@ if (!$mgr->table_exists('spe_rating')) {
                     'ratee'   => $mkname($r->ratee_first, $r->ratee_last),
                     'scores'  => [],
                     'comment' => $r->comment,
-                    // [ADD] hold avg score and sentiment for mismatch logic
                     'avgscore' => 0.0,
                     'avgsent'  => null
                 ];
@@ -119,7 +115,6 @@ if (!$mgr->table_exists('spe_rating')) {
             }
         }
 
-        // [ADD] Compute avg score and attach paired sentiment if any
         foreach ($byPair as $key => &$pair) {
             $pair['avgscore'] = !empty($pair['scores'])
                 ? (array_sum($pair['scores']) / count($pair['scores']))
@@ -137,7 +132,7 @@ if (!$mgr->table_exists('spe_rating')) {
             $avg = (float) $pair['avgscore'];
 
             $comment = (string)($pair['comment'] ?? '');
-            $fullcomment = s($comment);            // fully escaped
+            $fullcomment = s($comment);         
             $excerpt = nl2br($fullcomment);
 
             // Build Disparity / Mismatch chip
@@ -147,7 +142,6 @@ if (!$mgr->table_exists('spe_rating')) {
             $chipclass = 'spe-chip disparity';
 
             if (isset($disparities[$key])) {
-                // Prefer explicit DB-flagged disparity
                 $d = $disparities[$key];
                 $when  = $d['time'] ? userdate($d['time']) : '';
                 $meta  = $when ? " <span class='spe-mono'>@ {$when}</span>" : '';
@@ -155,7 +149,6 @@ if (!$mgr->table_exists('spe_rating')) {
                 $chiptext = "Disparity: Yes.";
                 $chipmeta = $meta;
             } else {
-                // [ADD] Fallback mismatch detection: score vs sentiment tug-of-war
                 $sent = $pair['avgsent'];
                 if ($sent !== null) {
                     $hiScoreNegSent = ($avg >= $RULES->hi_score_threshold) && ($sent <= $RULES->neg_sent_threshold);
@@ -209,7 +202,6 @@ if (!$mgr->table_exists('spe_sentiment')) {
         $table2->head = ['ID', 'Type', 'Rater', 'Target', 'Status', 'Label', 'Score', 'Excerpt'];
 
         foreach ($sentrows as $srow) {
-            // Map stored type to display label (including selfdesc → self-description)
             $typekey = (string)($srow->type ?? '');
             $typemap = [
                 'peer_comment' => 'peer comment',

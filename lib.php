@@ -20,7 +20,7 @@ function spe_add_instance($data, $mform = null) {
 // update Instance
 function spe_update_instance($data, $mform = null) {
     global $DB;
-    $data->id = $data->instance;       // Moodle sends "instance" for the row id.
+    $data->id = $data->instance;      
     $data->timemodified = time();
     return $DB->update_record('spe', $data);
 }
@@ -29,7 +29,6 @@ function spe_update_instance($data, $mform = null) {
 function spe_delete_instance($id) {
     global $DB;
     if (!$DB->record_exists('spe', ['id' => $id])) return false;
-    // TODO: delete child records later.
     $DB->delete_records('spe', ['id' => $id]);
     return true;
 }
@@ -70,8 +69,6 @@ function spe_extend_settings_navigation(settings_navigation $settingsnav, naviga
             new pix_icon('i/report', '')
         );
     }
-
- 
 
 }
 
