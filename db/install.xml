@@ -36,6 +36,8 @@
         <FIELD NAME="rateeid"     TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0"/>
         <FIELD NAME="label"       TYPE="char" LENGTH="10" NOTNULL="false" DEFAULT=""/> <!-- positive/neutral/negative/toxic -->
         <FIELD NAME="scoretotal"  TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" DEFAULT="0"/>
+        <FIELD NAME="commenttext"  TYPE="text"            NOTNULL="false"/>     
+        <FIELD NAME="isdisparity"  TYPE="int"  LENGTH="1" NOTNULL="true"  UNSIGNED="true" DEFAULT="0"/> 
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0"/>
       </FIELDS>
       <KEYS>
