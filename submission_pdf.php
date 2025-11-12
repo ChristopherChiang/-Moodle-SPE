@@ -159,7 +159,7 @@ if ($ratings) {
         // Comments
         $render_comments($items);
 
-        $pdf->Ln(2)
+        $pdf->Ln(2);
     }
 
 } else {

@@ -1,0 +1,93 @@
+username,password,firstname,lastname,email,auth,course1,role1,group1,course2,role2,group2,idnumber
+pcole,P@ssw0rd,Peter,Cole,peter.cole@gmail.com,manual,ICT302,editingteacher,Instructors,ICT279,editingteacher,Instructors,pcole
+35217143,P@ssw0rd,Khairul Nizam,Bin Kamsani,khrlnzmbnkmsn@gmail.com,manual,ICT302,student,Team A,ICT279,student,SecLab 1,35217143
+35217144,P@ssw0rd,Kok Fuan,Chiang,chiangkokfuan@gmail.com,manual,ICT302,student,Team A,ICT279,student,SecLab 1,35217144
+35217145,P@ssw0rd,Arvin,Lim,limarvin92@gmail.com,manual,ICT302,student,Team A,ICT279,student,SecLab 1,35217145
+35217146,P@ssw0rd,Sheng En Amos,Ng,amos.zack.ng@gmail.com,manual,ICT302,student,Team A,ICT279,student,SecLab 1,35217146
+35217147,P@ssw0rd,Kooshvini,DO Gunasakaran,kshekra1@gmail.com,manual,ICT302,student,Team A,ICT279,student,SecLab 1,35217147
+35217148,P@ssw0rd,Nengjie,Huang,huangnengjieybiz@gmail.com,manual,ICT302,student,Team A,ICT279,student,SecLab 1,35217148
+35217149,P@ssw0rd,Joyce Yoke Leng,Boey,joycebyl@hotmail.com,manual,ICT302,student,Team B,ICT279,student,SecLab 2,35217149
+35217150,P@ssw0rd,Rudolph Benjamin,Maxwell,RudolphBM@hotmail.com,manual,ICT302,student,Team B,ICT279,student,SecLab 2,35217150
+35217151,P@ssw0rd,Eng Kai,Tan,APPLE-OF-AN-EYE@HOTMAIL.CO.UK,manual,ICT302,student,Team B,ICT279,student,SecLab 2,35217151
+35217152,P@ssw0rd,Alvin You Rong,Teng,alvinteng2106@gmail.com,manual,ICT302,student,Team B,ICT279,student,SecLab 2,35217152
+35217153,P@ssw0rd,Yong Ru,Seah,seahyr95@gmail.com,manual,ICT302,student,Team B,ICT279,student,SecLab 2,35217153
+35217154,P@ssw0rd,William,Goh,william.goh@gmail.com,manual,ICT302,student,Team C,ICT279,student,SecLab 3,35217154
+35217155,P@ssw0rd,Nathan,Fong,nathan.fong@gmail.com,manual,ICT302,student,Team C,ICT279,student,SecLab 3,35217155
+35217156,P@ssw0rd,Ethan,Lim,ethan.lim@gmail.com,manual,ICT302,student,Team C,ICT279,student,SecLab 3,35217156
+35217157,P@ssw0rd,Maya,Seah,maya.seah@gmail.com,manual,ICT302,student,Team C,ICT279,student,SecLab 3,35217157
+35217158,P@ssw0rd,Grace,Heng,grace.heng@gmail.com,manual,ICT302,student,Team C,ICT279,student,SecLab 3,35217158
+35217159,P@ssw0rd,Grace,Lee,grace.lee@gmail.com,manual,ICT302,student,Team D,ICT279,student,SecLab 4,35217159
+35217160,P@ssw0rd,Olivia,Rahman,olivia.rahman@gmail.com,manual,ICT302,student,Team D,ICT279,student,SecLab 4,35217160
+35217161,P@ssw0rd,Xavier,Heng,xavier.heng@gmail.com,manual,ICT302,student,Team D,ICT279,student,SecLab 4,35217161
+35217162,P@ssw0rd,James,Ali,james.ali@gmail.com,manual,ICT302,student,Team D,ICT279,student,SecLab 4,35217162
+35217163,P@ssw0rd,Tristan,Rahman,tristan.rahman@gmail.com,manual,ICT302,student,Team D,ICT279,student,SecLab 4,35217163
+35217164,P@ssw0rd,Emily,Kumar,emily.kumar@gmail.com,manual,ICT302,student,Team E,ICT279,student,SecLab 5,35217164
+35217165,P@ssw0rd,Zachary,Ali,zachary.ali@gmail.com,manual,ICT302,student,Team E,ICT279,student,SecLab 5,35217165
+35217166,P@ssw0rd,Isaac,Koh,isaac.koh@gmail.com,manual,ICT302,student,Team E,ICT279,student,SecLab 5,35217166
+35217167,P@ssw0rd,Isaac,Phua,isaac.phua@gmail.com,manual,ICT302,student,Team E,ICT279,student,SecLab 5,35217167
+35217168,P@ssw0rd,Samuel,Ho,samuel.ho@gmail.com,manual,ICT302,student,Team E,ICT279,student,SecLab 5,35217168
+35217169,P@ssw0rd,Jasmine,Rahman,jasmine.rahman@gmail.com,manual,ICT302,student,Team F,ICT279,student,SecLab 6,35217169
+35217170,P@ssw0rd,Samuel,Tan,samuel.tan@gmail.com,manual,ICT302,student,Team F,ICT279,student,SecLab 6,35217170
+35217171,P@ssw0rd,Vera,Wong,vera.wong@gmail.com,manual,ICT302,student,Team F,ICT279,student,SecLab 6,35217171
+35217172,P@ssw0rd,Lucas,Boon,lucas.boon@gmail.com,manual,ICT302,student,Team F,ICT279,student,SecLab 6,35217172
+35217173,P@ssw0rd,Leah,Liew,leah.liew@gmail.com,manual,ICT302,student,Team F,ICT279,student,SecLab 6,35217173
+35217174,P@ssw0rd,Ethan,Koh,ethan.koh@gmail.com,manual,ICT302,student,Team G,ICT279,student,SecLab 7,35217174
+35217175,P@ssw0rd,Avery,Hsu,avery.hsu@gmail.com,manual,ICT302,student,Team G,ICT279,student,SecLab 7,35217175
+35217176,P@ssw0rd,Benjamin,Fong,benjamin.fong@gmail.com,manual,ICT302,student,Team G,ICT279,student,SecLab 7,35217176
+35217177,P@ssw0rd,Vera,Low,vera.low@gmail.com,manual,ICT302,student,Team G,ICT279,student,SecLab 7,35217177
+35217178,P@ssw0rd,Jasmine,Phua,jasmine.phua@gmail.com,manual,ICT302,student,Team G,ICT279,student,SecLab 7,35217178
+35217179,P@ssw0rd,Vera,Ong,vera.ong@gmail.com,manual,ICT302,student,Team H,ICT279,student,SecLab 8,35217179
+35217180,P@ssw0rd,Priya,Ali,priya.ali@gmail.com,manual,ICT302,student,Team H,ICT279,student,SecLab 8,35217180
+35217181,P@ssw0rd,Grace,Lau,grace.lau@gmail.com,manual,ICT302,student,Team H,ICT279,student,SecLab 8,35217181
+35217182,P@ssw0rd,Nathan,Toon,nathan.toon@gmail.com,manual,ICT302,student,Team H,ICT279,student,SecLab 8,35217182
+35217183,P@ssw0rd,James,Ho,james.ho@gmail.com,manual,ICT302,student,Team H,ICT279,student,SecLab 8,35217183
+35217184,P@ssw0rd,Sofia,Chew,sofia.chew@gmail.com,manual,ICT302,student,Team I,ICT279,student,SecLab 9,35217184
+35217185,P@ssw0rd,Kai,Cheong,kai.cheong@gmail.com,manual,ICT302,student,Team I,ICT279,student,SecLab 9,35217185
+35217186,P@ssw0rd,Nathan,Hsu,nathan.hsu@gmail.com,manual,ICT302,student,Team I,ICT279,student,SecLab 9,35217186
+35217187,P@ssw0rd,Grace,Seah,grace.seah@gmail.com,manual,ICT302,student,Team I,ICT279,student,SecLab 9,35217187
+35217188,P@ssw0rd,Nathan,Boon,nathan.boon@gmail.com,manual,ICT302,student,Team I,ICT279,student,SecLab 9,35217188
+35217189,P@ssw0rd,Xavier,Lim,xavier.lim@gmail.com,manual,ICT302,student,Team J,ICT279,student,SecLab 10,35217189
+35217190,P@ssw0rd,Logan,Boon,logan.boon@gmail.com,manual,ICT302,student,Team J,ICT279,student,SecLab 10,35217190
+35217191,P@ssw0rd,Benjamin,Fong,benjamin.fong1@gmail.com,manual,ICT302,student,Team J,ICT279,student,SecLab 10,35217191
+35217192,P@ssw0rd,Nora,Boon,nora.boon@gmail.com,manual,ICT302,student,Team J,ICT279,student,SecLab 10,35217192
+35217193,P@ssw0rd,Elena,Boon,elena.boon@gmail.com,manual,ICT302,student,Team J,ICT279,student,SecLab 10,35217193
+35217194,P@ssw0rd,Nathan,Goh,nathan.goh@gmail.com,manual,ICT302,student,Team K,ICT279,student,SecLab 11,35217194
+35217195,P@ssw0rd,Ryan,Ong,ryan.ong@gmail.com,manual,ICT302,student,Team K,ICT279,student,SecLab 11,35217195
+35217196,P@ssw0rd,Ryan,Chong,ryan.chong@gmail.com,manual,ICT302,student,Team K,ICT279,student,SecLab 11,35217196
+35217197,P@ssw0rd,Amelia,Chan,amelia.chan@gmail.com,manual,ICT302,student,Team K,ICT279,student,SecLab 11,35217197
+35217198,P@ssw0rd,Quinn,Cheong,quinn.cheong@gmail.com,manual,ICT302,student,Team K,ICT279,student,SecLab 11,35217198
+35217199,P@ssw0rd,Nathan,Toon,nathan.toon1@gmail.com,manual,ICT302,student,Team L,ICT279,student,SecLab 12,35217199
+35217200,P@ssw0rd,Jasmine,Seah,jasmine.seah@gmail.com,manual,ICT302,student,Team L,ICT279,student,SecLab 12,35217200
+35217201,P@ssw0rd,Xavier,Rahman,xavier.rahman@gmail.com,manual,ICT302,student,Team L,ICT279,student,SecLab 12,35217201
+35217202,P@ssw0rd,Olivia,Lee,olivia.lee@gmail.com,manual,ICT302,student,Team L,ICT279,student,SecLab 12,35217202
+35217203,P@ssw0rd,Amelia,Ong,amelia.ong@gmail.com,manual,ICT302,student,Team L,ICT279,student,SecLab 12,35217203
+35217204,P@ssw0rd,Noah,Singh,noah.singh@gmail.com,manual,ICT302,student,Team M,ICT279,student,SecLab 13,35217204
+35217205,P@ssw0rd,James,Seah,james.seah@gmail.com,manual,ICT302,student,Team M,ICT279,student,SecLab 13,35217205
+35217206,P@ssw0rd,Aisha,Ng,aisha.ng@gmail.com,manual,ICT302,student,Team M,ICT279,student,SecLab 13,35217206
+35217207,P@ssw0rd,Logan,Chew,logan.chew@gmail.com,manual,ICT302,student,Team M,ICT279,student,SecLab 13,35217207
+35217208,P@ssw0rd,Daniel,Koh,daniel.koh@gmail.com,manual,ICT302,student,Team M,ICT279,student,SecLab 13,35217208
+35217209,P@ssw0rd,Chloe,Phua,chloe.phua@gmail.com,manual,ICT302,student,Team N,ICT279,student,SecLab 14,35217209
+35217210,P@ssw0rd,Maya,Hsu,maya.hsu@gmail.com,manual,ICT302,student,Team N,ICT279,student,SecLab 14,35217210
+35217211,P@ssw0rd,Nathan,Rahman,nathan.rahman@gmail.com,manual,ICT302,student,Team N,ICT279,student,SecLab 14,35217211
+35217212,P@ssw0rd,Lucas,Toh,lucas.toh@gmail.com,manual,ICT302,student,Team N,ICT279,student,SecLab 14,35217212
+35217213,P@ssw0rd,Zachary,Lim,zachary.lim@gmail.com,manual,ICT302,student,Team N,ICT279,student,SecLab 14,35217213
+35217214,P@ssw0rd,Liam,Wong,liam.wong@gmail.com,manual,ICT302,student,Team O,ICT279,student,SecLab 15,35217214
+35217215,P@ssw0rd,Priya,Singh,priya.singh@gmail.com,manual,ICT302,student,Team O,ICT279,student,SecLab 15,35217215
+35217216,P@ssw0rd,Ryan,Heng,ryan.heng@gmail.com,manual,ICT302,student,Team O,ICT279,student,SecLab 15,35217216
+35217217,P@ssw0rd,Kai,Chua,kai.chua@gmail.com,manual,ICT302,student,Team O,ICT279,student,SecLab 15,35217217
+35217218,P@ssw0rd,William,Kumar,william.kumar@gmail.com,manual,ICT302,student,Team O,ICT279,student,SecLab 15,35217218
+35217219,P@ssw0rd,Noah,Liew,noah.liew@gmail.com,manual,ICT302,student,Team P,ICT279,student,SecLab 16,35217219
+35217220,P@ssw0rd,Liam,Lee,liam.lee@gmail.com,manual,ICT302,student,Team P,ICT279,student,SecLab 16,35217220
+35217221,P@ssw0rd,Elena,Teo,elena.teo@gmail.com,manual,ICT302,student,Team P,ICT279,student,SecLab 16,35217221
+35217222,P@ssw0rd,Quinn,Ng,quinn.ng@gmail.com,manual,ICT302,student,Team P,ICT279,student,SecLab 16,35217222
+35217223,P@ssw0rd,Sofia,Kumar,sofia.kumar@gmail.com,manual,ICT302,student,Team P,ICT279,student,SecLab 16,35217223
+35217224,P@ssw0rd,Aisha,Goh,aisha.goh@gmail.com,manual,ICT302,student,Team Q,ICT279,student,SecLab 17,35217224
+35217225,P@ssw0rd,Nathan,Rahman,nathan.rahman1@gmail.com,manual,ICT302,student,Team Q,ICT279,student,SecLab 17,35217225
+35217226,P@ssw0rd,Sofia,Rahman,sofia.rahman@gmail.com,manual,ICT302,student,Team Q,ICT279,student,SecLab 17,35217226
+35217227,P@ssw0rd,Felix,Chan,felix.chan@gmail.com,manual,ICT302,student,Team Q,ICT279,student,SecLab 17,35217227
+35217228,P@ssw0rd,Ryan,Koh,ryan.koh@gmail.com,manual,ICT302,student,Team Q,ICT279,student,SecLab 17,35217228
+35217229,P@ssw0rd,Leah,Goh,leah.goh@gmail.com,manual,ICT302,student,Team R,ICT279,student,SecLab 18,35217229
+35217230,P@ssw0rd,Avery,Aw,avery.aw@gmail.com,manual,ICT302,student,Team R,ICT279,student,SecLab 18,35217230
+35217231,P@ssw0rd,Uma,Singh,uma.singh@gmail.com,manual,ICT302,student,Team R,ICT279,student,SecLab 18,35217231
+35217232,P@ssw0rd,William,Mah,william.mah@gmail.com,manual,ICT302,student,Team R,ICT279,student,SecLab 18,35217232
+35217233,P@ssw0rd,Quinn,Seah,quinn.seah@gmail.com,manual,ICT302,student,Team R,ICT279,student,SecLab 18,35217233
