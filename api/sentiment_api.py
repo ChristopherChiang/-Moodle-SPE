@@ -176,8 +176,7 @@ def preprocess_phrases(text: str) -> Tuple[str, List[str]]:
 # Toxic words
 TOXIC_RE = re.compile(
     r"\b(dumbass|idiot|stupid|moron|useless|garbage|trash|loser|worthless|asshole|bitch|fuck|shit|hate|toxic|fucker)\b",
-    re.IGNORECASE
-)
+    re.IGNORECASE)
 def is_toxic(text: str) -> bool:
     return bool(TOXIC_RE.search(text or ""))
 

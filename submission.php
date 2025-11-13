@@ -14,13 +14,15 @@ $context = context_module::instance($cm->id);
 // Set capability 
 $canmanage = has_capability('mod/spe:manage', $context);
 
-if (!$userid) {
+if (!$userid) 
+{
     $userid = $USER->id;
 }
 $target = $DB->get_record('user', ['id' => $userid], 'id, firstname, lastname, username', MUST_EXIST);
 
 // Student to only view own, staff able to view all.
-if (!$canmanage && (int)$userid !== (int)$USER->id) {
+if (!$canmanage && (int)$userid !== (int)$USER->id) 
+{
     print_error('nopermissions', 'error', '', 'view this submission');
 }
 
@@ -36,7 +38,8 @@ $PAGE->set_pagelayout('incourse');
 $PAGE->add_body_class('spe-compact spe-left');
 
 // Instructor dashboard button
-if ($canmanage) {
+if ($canmanage) 
+{
     $label = get_string_manager()->string_exists('instructordashboard', 'spe')
         ? get_string('instructordashboard', 'spe')
         : 'Instructor dashboard';
@@ -64,8 +67,10 @@ $lastmodified = $submission ? (int)($submission->timemodified ?: $submission->ti
 $timemsg  = '-';
 $timehtml = $timemsg;
 
-if ($timedue > 0) {
-    if ($submission) {
+if ($timedue > 0) 
+{
+    if ($submission) 
+    {
         $delta   = $timedue - $lastmodified;
         $when    = format_time(abs($delta));
         $timemsg = ($delta >= 0)
@@ -76,13 +81,17 @@ if ($timedue > 0) {
         $timehtml = ($delta >= 0)
             ? html_writer::span($timemsg, '', ['style' => 'color:#036635;font-weight:600;'])
             : html_writer::span($timemsg, '', ['style' => 'color:#b42318;font-weight:600;']);
-    } else {
+    } 
+    else 
+    {
         $remain  = $timedue - time();
         $timemsg = ($remain >= 0) ? 'Time remaining: ' . format_time($remain)
                                   : 'Closed ' . format_time(-$remain) . ' ago';
         $timehtml = s($timemsg);
     }
-} else {
+} 
+else 
+{
     $timehtml = s($timemsg);
 }
 
@@ -113,7 +122,8 @@ echo html_writer::tag('h3', 'Submission status', ['class' => 'mt-4']);
 
 echo html_writer::start_tag('table', ['class' => 'generaltable', 'style' => 'width:auto;min-width:60%;']);
 
-$tr = function(string $label, string $valuehtml, string $rowstyle = ''): string {
+$tr = function(string $label, string $valuehtml, string $rowstyle = ''): string 
+{
     return html_writer::tag('tr',
         html_writer::tag('th', $label, ['style' => 'width:240px;']) .
         html_writer::tag('td', $valuehtml),
@@ -134,10 +144,12 @@ $pdflink = html_writer::link($pdfurl, 'Download submission PDF');
 echo $tr('File submissions', $pdflink);
 
 // Group score row after grading
-if ($graded) {
+if ($graded) 
+{
     $stars   = isset($pubpref['stars'])   ? $pubpref['stars']   : null;
     $percent = isset($pubpref['percent']) ? $pubpref['percent'] : null;
-    if ($stars !== null || $percent !== null) {
+    if ($stars !== null || $percent !== null) 
+    {
         $display = ($stars !== null ? $stars . ' / 5' : '');
         if ($percent !== null) {
             $display .= ($display ? ' ' : '');
@@ -149,8 +161,10 @@ if ($graded) {
 echo html_writer::end_tag('table');
 
 // Reset button for instructors
-if ($canmanage) {
-    $reseturl = new moodle_url('/mod/spe/submission_reset.php', [
+if ($canmanage) 
+{
+    $reseturl = new moodle_url('/mod/spe/submission_reset.php', 
+    [
         'id' => $cm->id,
         'userid' => $userid,
         'sesskey' => sesskey()
@@ -174,11 +188,13 @@ $backcourse = new moodle_url('/course/view.php', ['id' => $course->id]);
 $backact    = new moodle_url('/mod/spe/view.php',  ['id' => $cm->id]);
 
 echo html_writer::div(
-    html_writer::link($backact, '← Back to activity', [
+    html_writer::link($backact, '← Back to activity', 
+    [
         'class' => 'btn btn-secondary',
         'style' => 'margin-top:12px;margin-right:8px;'
     ]) .
-    html_writer::link($backcourse, '← Back to course', [
+    html_writer::link($backcourse, '← Back to course', 
+    [
         'class' => 'btn btn-secondary',
         'style' => 'margin-top:12px;'
     ])

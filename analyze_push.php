@@ -20,12 +20,14 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading('Run sentiment analysis');
 
 // Gather pending items
-$pendings = $DB->get_records('spe_sentiment', [
+$pendings = $DB->get_records('spe_sentiment', 
+[
     'speid'  => $cm->instance,
     'status' => 'pending'
 ], 'timecreated ASC', 'id, speid, raterid, rateeid, type, text, timecreated');
 
-if (!$pendings) {
+if (!$pendings) 
+{
     echo $OUTPUT->notification('Nothing to analyze — there are no pending items for this activity.', 'notifyinfo');
     $back = new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]);
     echo html_writer::div($OUTPUT->single_button($back, '← Back to Instructor', 'get'), 'mt-3');
@@ -36,18 +38,21 @@ if (!$pendings) {
 // API interaction
 require_once($CFG->libdir . '/filelib.php');
 
-function spe_probe_api(string $apiurl): bool {
+function spe_probe_api(string $apiurl): bool 
+{
     $curl  = new curl();
     $base  = rtrim($apiurl, '/');
     $probe = preg_replace('#/analyze/?$#', '', $base) . '/openapi.json';
 
-    try {
+    try 
+    {
         $curl->get($probe, ['timeout' => 5]);
         $info = $curl->get_info();
         if (!empty($info['http_code']) && (int)$info['http_code'] === 200) { return true; }
     } catch (Exception $e) { /* ignore */ }
 
-    try {
+    try 
+    {
         $curl->options($base, ['timeout' => 5]);
         $info = $curl->get_info();
         if (!empty($info['http_code']) && (int)$info['http_code'] === 200) { return true; }
@@ -58,10 +63,17 @@ function spe_probe_api(string $apiurl): bool {
 
 $apiurl   = trim((string)get_config('mod_spe', 'sentiment_url'));
 $apitoken = trim((string)get_config('mod_spe', 'sentiment_token'));
-if ($apiurl === '') { $apiurl = 'http://127.0.0.1:8000/analyze'; }
-if (strpos($apiurl, '/analyze') === false) { $apiurl = rtrim($apiurl, '/') . '/analyze'; }
+if ($apiurl === '') 
+{ 
+    $apiurl = 'http://127.0.0.1:8000/analyze'; 
+}
+if (strpos($apiurl, '/analyze') === false) 
+{ 
+    $apiurl = rtrim($apiurl, '/') . '/analyze'; 
+}
 
-if (!spe_probe_api($apiurl)) {
+if (!spe_probe_api($apiurl)) 
+{
     echo $OUTPUT->notification('Sentiment API is not reachable. Please ensure it is running and the URL is correct.', 'notifyproblem');
     $back = new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]);
     echo html_writer::div($OUTPUT->single_button($back, '← Back to Instructor', 'get'), 'mt-3');
@@ -76,7 +88,8 @@ $SCORE_MAX_DEFAULT = 25;
 $items = [];
 $byid  = []; 
 
-foreach ($pendings as $row) {
+foreach ($pendings as $row) 
+{
     $scoretotal = (int)$DB->get_field_sql(
         "SELECT COALESCE(SUM(score),0)
            FROM {spe_rating}
@@ -84,7 +97,8 @@ foreach ($pendings as $row) {
         ['s' => $cm->instance, 'r' => $row->raterid, 'e' => $row->rateeid]
     );
 
-    $items[] = [
+    $items[] = 
+    [
         'id'          => (string)$row->id,
         'text'        => (string)$row->text,
         'score_total' => $scoretotal,
@@ -92,13 +106,17 @@ foreach ($pendings as $row) {
         'score_max'   => $SCORE_MAX_DEFAULT,
     ];
 
-    $byid[(int)$row->id] = (object)[
+    $byid[(int)$row->id] = (object)
+    [
         'row'        => $row,
         'scoretotal' => $scoretotal
     ];
 }
 
-if (count($items) > 2000) { $items = array_slice($items, 0, 2000); }
+if (count($items) > 2000) 
+{ 
+    $items = array_slice($items, 0, 2000); 
+}
 
 // Cannonical JSON payload
 $payload = json_encode(['items' => $items], JSON_UNESCAPED_UNICODE);
@@ -110,10 +128,17 @@ $caheaders = spe_ca_build_request_headers($path, $payload);
 // API request
 $curl    = new curl();
 $headers = ['Content-Type: application/json'];
-if ($apitoken !== '') { $headers[] = 'X-API-Token: ' . $apitoken; }
-foreach ($caheaders as $k => $v) { $headers[] = $k . ': ' . $v; }
+if ($apitoken !== '') 
+{ 
+    $headers[] = 'X-API-Token: ' . $apitoken; 
+}
+foreach ($caheaders as $k => $v) 
+{ 
+    $headers[] = $k . ': ' . $v; 
+}
 
-try {
+try 
+{
     $resp = $curl->post($apiurl, $payload, [
         'CURLOPT_HTTPHEADER' => $headers,
         'timeout'            => 60,
@@ -130,15 +155,18 @@ try {
 
     // Verify server response signature
     $respheaders = [];
-    foreach (preg_split('/\r\n/', $raw_headers) as $line) {
-        if (strpos($line, ':') !== false) {
+    foreach (preg_split('/\r\n/', $raw_headers) as $line) 
+    {
+        if (strpos($line, ':') !== false) 
+        {
             [$k, $v] = array_map('trim', explode(':', $line, 2));
             $respheaders[strtolower($k)][] = $v;
         }
     }
     spe_ca_verify_server_response($path, $body, $respheaders);
 
-    if ($http >= 400 || $http === 0) {
+    if ($http >= 400 || $http === 0) 
+    {
         echo $OUTPUT->notification('Sentiment API returned HTTP ' . $http . '.', 'notifyproblem');
         $back = new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]);
         echo html_writer::div($OUTPUT->single_button($back, '← Back to Instructor', 'get'), 'mt-3');
@@ -157,7 +185,8 @@ try {
 
 // Parse response
 $data = json_decode($resp);
-if ($data === null || (json_last_error() !== JSON_ERROR_NONE)) {
+if ($data === null || (json_last_error() !== JSON_ERROR_NONE)) 
+{
     echo $OUTPUT->notification('Unexpected (non-JSON) response from Sentiment API.', 'notifyproblem');
     echo html_writer::tag('pre', s(substr($resp, 0, 400)));
     $back = new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]);
@@ -166,7 +195,8 @@ if ($data === null || (json_last_error() !== JSON_ERROR_NONE)) {
     exit;
 }
 
-if (is_object($data) && property_exists($data, 'ok') && $data->ok === false) {
+if (is_object($data) && property_exists($data, 'ok') && $data->ok === false) 
+{
     echo $OUTPUT->notification('Sentiment API rejected the batch (likely token mismatch).', 'notifyproblem');
     $back = new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]);
     echo html_writer::div($OUTPUT->single_button($back, '← Back to Instructor', 'get'), 'mt-3');
@@ -174,7 +204,8 @@ if (is_object($data) && property_exists($data, 'ok') && $data->ok === false) {
     exit;
 }
 
-if (!isset($data->results) || !is_array($data->results)) {
+if (!isset($data->results) || !is_array($data->results)) 
+{
     echo $OUTPUT->notification('Unexpected response format from Sentiment API.', 'notifyproblem');
     $back = new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]);
     echo html_writer::div($OUTPUT->single_button($back, '← Back to Instructor', 'get'), 'mt-3');
@@ -187,17 +218,25 @@ $processedids = [];
 $mgr = $DB->get_manager();
 $ins_count = 0; $upd_count = 0;
 
-foreach ($data->results as $res) {
+foreach ($data->results as $res) 
+{
     $id = (int)($res->id ?? 0);
-    if (!$id) { continue; }
+    if (!$id) 
+    { 
+        continue; 
+    }
 
-    if (!isset($byid[$id])) { continue; }
+    if (!isset($byid[$id])) 
+    { 
+        continue; 
+    }
     $cache = $byid[$id];
     /** @var stdClass $sentrow */
     $sentrow = $cache->row;
     $scoretotal = (int)$cache->scoretotal;
 
-    if (!$row = $DB->get_record('spe_sentiment', ['id' => $id, 'speid' => $cm->instance])) {
+    if (!$row = $DB->get_record('spe_sentiment', ['id' => $id, 'speid' => $cm->instance])) 
+    {
         continue;
     }
 
@@ -214,7 +253,8 @@ foreach ($data->results as $res) {
 
     // If disparity table exists, update it based on API result
 
-    if ($mgr->table_exists('spe_disparity')) {
+    if ($mgr->table_exists('spe_disparity')) 
+    {
         $isdisparity = !empty($res->disparity) ? 1 : 0;
         $reason      = isset($res->disparity_reason) ? (string)$res->disparity_reason : '';
 
@@ -226,7 +266,8 @@ foreach ($data->results as $res) {
             'rateeid' => (int)$sentrow->rateeid
         ]);
 
-        $rec = (object)[
+        $rec = (object)
+        [
             'speid'       => $cm->instance,
             'raterid'     => (int)$sentrow->raterid,
             'rateeid'     => (int)$sentrow->rateeid,
@@ -237,11 +278,14 @@ foreach ($data->results as $res) {
             'timecreated' => time()
         ];
 
-        if ($existing) {
+        if ($existing) 
+        {
             $rec->id = $existing->id;
             $DB->update_record('spe_disparity', $rec);
             $upd_count++;
-        } else {
+        } 
+        else 
+        {
             $DB->insert_record('spe_disparity', $rec);
             $ins_count++;
         }
@@ -250,7 +294,8 @@ foreach ($data->results as $res) {
 
 }
 
-if (!$processedids) {
+if (!$processedids) 
+{
     echo $OUTPUT->notification('No items were processed.', 'notifyinfo');
     $back = new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]);
     echo html_writer::div($OUTPUT->single_button($back, '← Back to Instructor', 'get'), 'mt-3');
@@ -263,9 +308,11 @@ list($insql, $inparams) = $DB->get_in_or_equal($processedids, SQL_PARAMS_NAMED, 
 $rows = $DB->get_records_select('spe_sentiment', "id $insql", $inparams, 'type, raterid, rateeid, id');
 
 $userids = [];
-foreach ($rows as $r) { $userids[$r->raterid] = true; $userids[$r->rateeid] = true; }
+foreach ($rows as $r) 
+{ $userids[$r->raterid] = true; $userids[$r->rateeid] = true; }
 $users = [];
-if ($userids) {
+if ($userids) 
+{
     list($uinsql, $uinparams) = $DB->get_in_or_equal(array_keys($userids), SQL_PARAMS_NAMED, 'u');
     $users = $DB->get_records_select('user', "id $uinsql", $uinparams, '', 'id, firstname, lastname, username');
 }
@@ -274,12 +321,18 @@ if ($userids) {
 $reflections  = [];
 $selfdescs    = [];
 $peercomments = [];
-foreach ($rows as $r) {
-    if ($r->type === 'reflection') {
+foreach ($rows as $r) 
+{
+    if ($r->type === 'reflection') 
+    {
         $reflections[] = $r;
-    } elseif ($r->type === 'selfdesc') {
+    } 
+    elseif ($r->type === 'selfdesc') 
+    {
         $selfdescs[] = $r;
-    } else {
+    } 
+    else 
+    {
         $peercomments[] = $r;
     }
 }
@@ -292,13 +345,15 @@ $summary = 'Processed ' . count($processedids) . ' items — ' .
            count($peercomments) . ' peer comment(s).';
 
 
-if ($mgr->table_exists('spe_disparity')) {
+if ($mgr->table_exists('spe_disparity')) 
+{
     $summary .= ' | Disparity rows: ' . $ins_count . ' inserted, ' . $upd_count . ' updated.';
 }
 
 echo html_writer::div($summary, 'alert alert-success');
 
-$badge = function (string $label): string {
+$badge = function (string $label): string 
+{
     $style = 'background:#6c757d;';
     if ($label === 'positive') $style = 'background:#1a7f37;';
     if ($label === 'negative') $style = 'background:#b42318;';
@@ -307,9 +362,14 @@ $badge = function (string $label): string {
 };
 
 // Table renderer
-$render_table = function(string $title, array $data) use ($users, $badge) {
+$render_table = function(string $title, array $data) use ($users, $badge) 
+{
     echo html_writer::tag('h3', $title);
-    if (!$data) { echo html_writer::div('None.', 'muted'); return; }
+    if (!$data) 
+    { 
+        echo html_writer::div('None.', 'muted'); 
+        return; 
+    }
 
     echo html_writer::start_tag('table', ['class' => 'generaltable']);
     echo html_writer::tag('tr',
@@ -321,7 +381,8 @@ $render_table = function(string $title, array $data) use ($users, $badge) {
         html_writer::tag('th', 'Excerpt')
     );
 
-    foreach ($data as $r) {
+    foreach ($data as $r) 
+    {
         $rater = $users[$r->raterid] ?? null;
         $ratee = $users[$r->rateeid] ?? null;
         $rname = $rater ? fullname($rater) . " ({$rater->username})" : (string)$r->raterid;

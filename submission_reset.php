@@ -16,34 +16,40 @@ require_capability('mod/spe:manage', $context);
 require_sesskey();
 
 // Remove student submission record.
-$DB->delete_records('spe_submission', [
+$DB->delete_records('spe_submission', 
+[
     'speid' => $cm->instance,
     'userid' => $userid
 ]);
 
 // Remove ratings
-$DB->delete_records('spe_rating', [
+$DB->delete_records('spe_rating', 
+[
     'speid'   => $cm->instance,
     'raterid' => $userid
 ]);
 
 // Remove sentiments
-$DB->delete_records('spe_sentiment', [
+$DB->delete_records('spe_sentiment', 
+[
     'speid'   => $cm->instance,
     'raterid' => $userid
 ]);
 
 // Remove disparity
 $manager = $DB->get_manager();
-if ($manager->table_exists('spe_disparity')) {
-    $DB->delete_records('spe_disparity', [
+if ($manager->table_exists('spe_disparity')) 
+{
+    $DB->delete_records('spe_disparity', 
+    [
         'speid'   => $cm->instance,
         'raterid' => $userid
     ]);
 }
 
 // Remove group scores
-if ($manager->table_exists('spe_group_score')) {
+if ($manager->table_exists('spe_group_score')) 
+{
     $DB->delete_records_select(
         'spe_group_score',
         'speid = :speid AND (userid = :uid OR studentid = :uid)',

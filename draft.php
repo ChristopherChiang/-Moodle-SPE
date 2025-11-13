@@ -16,11 +16,13 @@ require_capability('mod/spe:submit', $context); // students
 
 $key = 'mod_spe_draft_' . $cm->id;
 
-switch ($action) {
+switch ($action) 
+{
     case 'save':
         require_capability('mod/spe:submit', $context);
         $raw = file_get_contents('php://input');
-        if (core_text::strlen($raw) > 200000) { 
+        if (core_text::strlen($raw) > 200000) 
+        { 
             $raw = substr($raw, 0, 200000);
         }
         set_user_preference($key, $raw, $USER);

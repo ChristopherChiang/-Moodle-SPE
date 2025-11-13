@@ -25,19 +25,14 @@ $btns = [];
 
 // Group Approve button
 $btns[] = $OUTPUT->single_button(
-    new moodle_url('/mod/spe/group_approve.php', ['id' => $cm->id]),
-    'Approve Group Scores',
-    'get'
-);
+    new moodle_url('/mod/spe/group_approve.php', ['id' => $cm->id]),'Approve Group Scores','get');
 
 // Reset All button for admin only
 $sysctx = context_system::instance();
-if (is_siteadmin() || has_capability('moodle/site:config', $sysctx)) {
+if (is_siteadmin() || has_capability('moodle/site:config', $sysctx)) 
+{
     $btns[] = $OUTPUT->single_button(
-        new moodle_url('/mod/spe/admin_reset_all.php', ['id' => $cm->id]),
-        'Admin: Reset ALL',
-        'get'
-    );
+        new moodle_url('/mod/spe/admin_reset_all.php', ['id' => $cm->id]),'Admin: Reset ALL','get');
 }
 
 // Apply header buttons (Grade book appears below)
@@ -53,7 +48,8 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading('SPE — Instructor Management');
 
 // Link shortcuts
-$links = [
+$links = 
+[
     html_writer::link(
         new moodle_url('/mod/spe/analysis_report.php', ['id' => $cm->id]),
         'Open Sentiment Analysis Report'
@@ -79,31 +75,42 @@ $allstudents = $DB->get_records_sql("
 ", ['speid' => $cm->instance]);
 
 // Process "Run Analysis" request
-if ($runall && confirm_sesskey()) {
-    if ($allstudents) {
-        foreach ($allstudents as $u) {
+if ($runall && confirm_sesskey()) 
+{
+    if ($allstudents) 
+    {
+        foreach ($allstudents as $u) 
+        {
             $reflectiontext = '';
-            if ($sub = $DB->get_record('spe_submission', ['speid' => $cm->instance, 'userid' => $u->id])) {
-                if (!empty(trim($sub->reflection))) {
+            if ($sub = $DB->get_record('spe_submission', ['speid' => $cm->instance, 'userid' => $u->id])) 
+            {
+                if (!empty(trim($sub->reflection))) 
+                {
                     $reflectiontext = trim($sub->reflection);
                 }
             }
-            if ($reflectiontext === '' && $DB->get_manager()->table_exists('spe_reflection')) {
+            if ($reflectiontext === '' && $DB->get_manager()->table_exists('spe_reflection')) 
+            {
                 $refrec = $DB->get_record('spe_reflection', ['speid' => $cm->instance, 'userid' => $u->id]);
-                if ($refrec && !empty(trim($refrec->reflection))) {
+                if ($refrec && !empty(trim($refrec->reflection))) 
+                {
                     $reflectiontext = trim($refrec->reflection);
                 }
             }
-            if ($reflectiontext !== '') {
-                $exists = $DB->record_exists('spe_sentiment', [
+            if ($reflectiontext !== '') 
+            {
+                $exists = $DB->record_exists('spe_sentiment', 
+                [
                     'speid'   => $cm->instance,
                     'raterid' => $u->id,
                     'rateeid' => $u->id,
                     'type'    => 'reflection',
                     'text'    => $reflectiontext
                 ]);
-                if (!$exists) {
-                    $DB->insert_record('spe_sentiment', (object)[
+                if (!$exists) 
+                {
+                    $DB->insert_record('spe_sentiment', (object)
+                    [
                         'speid'       => $cm->instance,
                         'raterid'     => $u->id,
                         'rateeid'     => $u->id,
@@ -116,22 +123,27 @@ if ($runall && confirm_sesskey()) {
             }
 
             // Peer comments this user wrote
-            $ratings = $DB->get_records('spe_rating', [
+            $ratings = $DB->get_records('spe_rating', 
+            [
                 'speid'   => $cm->instance,
                 'raterid' => $u->id
             ]);
-            foreach ($ratings as $r) {
+            foreach ($ratings as $r) 
+            {
                 $comment = trim((string)$r->comment);
                 if ($comment === '') { continue; }
-                $exists = $DB->record_exists('spe_sentiment', [
+                $exists = $DB->record_exists('spe_sentiment', 
+                [
                     'speid'   => $cm->instance,
                     'raterid' => $u->id,
                     'rateeid' => $r->rateeid,
                     'type'    => 'peer_comment',
                     'text'    => $comment
                 ]);
-                if (!$exists) {
-                    $DB->insert_record('spe_sentiment', (object)[
+                if (!$exists) 
+                {
+                    $DB->insert_record('spe_sentiment', (object)
+                    [
                         'speid'       => $cm->instance,
                         'raterid'     => $u->id,
                         'rateeid'     => $r->rateeid,
@@ -151,7 +163,8 @@ if ($runall && confirm_sesskey()) {
     set_config($hidekey, time(), 'mod_spe');
 
     // Jump to analyzer
-    redirect(new moodle_url('/mod/spe/analyze_push.php', [
+    redirect(new moodle_url('/mod/spe/analyze_push.php', 
+    [
         'id' => $cm->id,
         'sesskey' => sesskey(),
     ]));
@@ -161,9 +174,11 @@ if ($runall && confirm_sesskey()) {
 $disparitycount = []; 
 $disparitymap   = [];
 $mgr = $DB->get_manager();
-if ($mgr->table_exists('spe_disparity')) {
+if ($mgr->table_exists('spe_disparity')) 
+{
     $drows = $DB->get_records('spe_disparity', ['speid' => $cm->instance], '', 'raterid, rateeid');
-    foreach ($drows as $d) {
+    foreach ($drows as $d) 
+    {
         $key = $d->raterid . '->' . $d->rateeid;
         $disparitymap[$key] = true;
         if (!isset($disparitycount[$d->raterid])) $disparitycount[$d->raterid] = 0;
@@ -173,10 +188,13 @@ if ($mgr->table_exists('spe_disparity')) {
 
 // Visible students 
 $students = [];
-if ($allstudents) {
-    foreach ($allstudents as $u) {
+if ($allstudents) 
+{
+    foreach ($allstudents as $u) 
+    {
         $ts = (int)($u->timemodified ?: $u->timecreated);
-        if ($ts > $hideafterts) {
+        if ($ts > $hideafterts) 
+        {
             $students[$u->id] = $u;
         }
     }
@@ -185,7 +203,8 @@ if ($allstudents) {
 echo html_writer::tag('h2', 'Approvals & Queue for Analysis');
 
 // "Run Analysis" button
-$runallurl = new moodle_url('/mod/spe/instructor.php', [
+$runallurl = new moodle_url('/mod/spe/instructor.php', 
+[
     'id'      => $cm->id,
     'runall'  => 1,
     'sesskey' => sesskey()
@@ -200,9 +219,12 @@ echo html_writer::div(
 echo html_writer::start_tag('table', ['class' => 'generaltable']);
 
 $queuedbyrater = [];
-if ($students) {
-    foreach ($students as $u) {
-        $queuedbyrater[$u->id] = (int)$DB->count_records('spe_sentiment', [
+if ($students) 
+{
+    foreach ($students as $u) 
+    {
+        $queuedbyrater[$u->id] = (int)$DB->count_records('spe_sentiment', 
+        [
             'speid'   => $cm->instance,
             'raterid' => $u->id
         ]);
@@ -210,7 +232,8 @@ if ($students) {
 }
 
 // Table header
-$headcells = [
+$headcells = 
+[
     html_writer::tag('th', 'Student'),
     html_writer::tag('th', 'Submission Time'),
     html_writer::tag('th', 'Queued Items'),
@@ -219,16 +242,22 @@ $headcells = [
 echo html_writer::tag('tr', implode('', $headcells));
 
 // Rows for each student
-if ($students) {
-    foreach ($students as $u) {
+if ($students) 
+{
+    foreach ($students as $u) 
+    {
         $queuedtotal = $queuedbyrater[$u->id] ?? 0;
 
         $dcount = (int)($disparitycount[$u->id] ?? 0);
-        if ($dcount > 0) {
-            $dcell = html_writer::span('Yes', '', [
+        if ($dcount > 0) 
+        {
+            $dcell = html_writer::span('Yes', '', 
+            [
                 'style' => 'background:#fff8b3;padding:2px 8px;border-radius:10px;display:inline-block;font-weight:600;'
             ]);
-        } else {
+        } 
+        else 
+        {
             $dcell = '';
         }
 

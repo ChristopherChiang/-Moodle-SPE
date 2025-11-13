@@ -1,7 +1,8 @@
 <?php
 defined('MOODLE_INTERNAL') || die();
 
-if ($hassiteconfig) {
+if ($hassiteconfig) 
+{
     $settings->add(new admin_setting_configtext(
         'mod_spe/sentiment_url',
         get_string('sentiment_url', 'mod_spe'),

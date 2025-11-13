@@ -22,10 +22,13 @@ $PAGE->set_pagelayout('incourse');
 $allgroups = groups_get_all_groups($course->id);
 
 $usergroup = [];
-foreach ($allgroups as $g) {
+foreach ($allgroups as $g) 
+{
     $members = groups_get_members($g->id, 'u.id, u.firstname, u.lastname, u.username');
-    foreach ($members as $u) {
-        if (!isset($usergroup[$u->id])) {
+    foreach ($members as $u) 
+    {
+        if (!isset($usergroup[$u->id])) 
+        {
             $usergroup[$u->id] = $g->name;
         }
     }
@@ -37,11 +40,14 @@ $ratings = $DB->get_records('spe_rating', ['speid' => $cm->instance], 'rateeid, 
 // Aggregate received ratings per user
 $received = [];   
 $raterset = [];  
-foreach ($ratings as $r) {
-    if ((int)$r->rateeid === (int)$r->raterid) {
+foreach ($ratings as $r) 
+{
+    if ((int)$r->rateeid === (int)$r->raterid) 
+    {
         continue;
     }
-    if (!isset($received[$r->rateeid]['sumfrom'][$r->raterid])) {
+    if (!isset($received[$r->rateeid]['sumfrom'][$r->raterid])) 
+    {
         $received[$r->rateeid]['sumfrom'][$r->raterid] = 0;
     }
     $received[$r->rateeid]['sumfrom'][$r->raterid] += (int)$r->score;
@@ -50,10 +56,12 @@ foreach ($ratings as $r) {
 
 // Compute combined scores
 $rows = [];
-foreach ($received as $uid => $info) {
+foreach ($received as $uid => $info) 
+{
     $totals = array_values($info['sumfrom'] ?? []);
     $numraters = count($totals);
-    if ($numraters === 0) {
+    if ($numraters === 0) 
+    {
         continue;
     }
 
@@ -67,9 +75,12 @@ foreach ($received as $uid => $info) {
            AND s.type    = 'peer_comment'
     ", ['speid' => $cm->instance, 'uid' => $uid]);
 
-    if ($avgnorm === false || $avgnorm === null) {
+    if ($avgnorm === false || $avgnorm === null) 
+    {
         $avgnorm = 0.5;
-    } else {
+    } 
+    else 
+    {
         $avgnorm = (float)$avgnorm;
         if ($avgnorm < 0) $avgnorm = 0.0;
         if ($avgnorm > 1) $avgnorm = 1.0;
@@ -88,7 +99,8 @@ foreach ($received as $uid => $info) {
 
     $compound = ($avgnorm * 2.0) - 1.0;
 
-    $rows[$uid] = [
+    $rows[$uid] = 
+    [
         'userid'      => (int)$uid,
         'group'       => $usergroup[$uid] ?? 'Ungrouped',
         'avgpoints'   => round($avgpoints, 3),      
@@ -102,8 +114,10 @@ foreach ($received as $uid => $info) {
 }
 
 // Publish to user preferences 
-if ($approve && confirm_sesskey()) {
-    foreach ($rows as $uid => $d) {
+if ($approve && confirm_sesskey()) 
+{
+    foreach ($rows as $uid => $d) 
+    {
         $prefname = 'mod_spe_groupscore_' . $cm->id;
         set_user_preference($prefname, json_encode($d), $uid);
     }
@@ -123,12 +137,11 @@ echo html_writer::div(
     'mb-3'
 );
 
-if (!empty($rows)) {
+if (!empty($rows)) 
+{
     $puburl = new moodle_url('/mod/spe/group_approve.php', ['id' => $cm->id, 'approve' => 1, 'sesskey' => sesskey()]);
     echo html_writer::div(
-        html_writer::link($puburl, '✅ Publish group scores', ['class' => 'btn btn-primary mb-3']),
-        ''
-    );
+        html_writer::link($puburl, '✅ Publish group scores', ['class' => 'btn btn-primary mb-3']), '');
 }
 
 // Table
@@ -143,12 +156,14 @@ echo html_writer::tag('tr',
 );
 
 // Names
-if ($rows) {
+if ($rows) 
+{
     $uids = array_keys($rows);
     list($in, $params) = $DB->get_in_or_equal($uids, SQL_PARAMS_NAMED);
     $names = $DB->get_records_select('user', "id $in", $params, '', 'id, firstname, lastname, username');
 
-    foreach ($rows as $uid => $d) {
+    foreach ($rows as $uid => $d) 
+    {
         $u = $names[$uid] ?? null;
         $uname = $u ? fullname($u) . ' (' . s($u->username) . ')' : $uid;
 
@@ -158,8 +173,7 @@ if ($rows) {
             html_writer::tag('td', (string)$d['raters']) .
             html_writer::tag('td', (string)$d['avgpoints']) .
             html_writer::tag('td', $d['percent'] . '%') .
-            html_writer::tag('td', $d['stars'] . ' / 5')
-        );
+            html_writer::tag('td', $d['stars'] . ' / 5'));
     }
 }
 echo html_writer::end_tag('table');

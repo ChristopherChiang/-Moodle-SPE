@@ -26,7 +26,8 @@ echo html_writer::tag('style', '
 ');
 
 // Helper to build a display name 
-$mkname = function(string $first = '', string $last = ''): string {
+$mkname = function(string $first = '', string $last = ''): string 
+{
     return format_string(trim($first . ' ' . $last));
 };
 
@@ -34,7 +35,8 @@ $mgr    = $DB->get_manager();
 $params = ['speid' => $cm->instance];
 
 // Disparity / mismatch rules
-$RULES = (object)[
+$RULES = (object)
+[
     'hi_score_threshold' => 4.0,   
     'lo_score_threshold' => 2.0,   
     'neg_sent_threshold' => 0.35,  
@@ -43,13 +45,15 @@ $RULES = (object)[
 
 // Load disparities key
 $disparities = [];
-if ($mgr->table_exists('spe_disparity')) {
+if ($mgr->table_exists('spe_disparity')) 
+{
     $sqldisp = "SELECT d.raterid, d.rateeid, d.label, d.scoretotal, d.timecreated
                   FROM {spe_disparity} d
                  WHERE d.speid = :speid
                    AND d.isdisparity = 1";
     $drows = $DB->get_records_sql($sqldisp, $params);
-    foreach ($drows as $d) {
+    foreach ($drows as $d) 
+    {
         $key = $d->raterid . '->' . $d->rateeid;
         $disparities[$key] = [
             'label'      => (string)($d->label ?? ''),
@@ -62,14 +66,16 @@ if ($mgr->table_exists('spe_disparity')) {
 
 // Load paired sentiment averages
 $pairsent = [];
-if ($mgr->table_exists('spe_sentiment')) {
+if ($mgr->table_exists('spe_sentiment')) 
+{
     $sqlpairsent = "SELECT s.raterid, s.rateeid, AVG(s.sentiment) AS avgsent
                       FROM {spe_sentiment} s
                      WHERE s.speid = :speid
                        AND s.type  = 'peer_comment'
                   GROUP BY s.raterid, s.rateeid";
     $srows = $DB->get_records_sql($sqlpairsent, $params);
-    foreach ($srows as $sr) {
+    foreach ($srows as $sr) 
+    {
         $key = $sr->raterid . '->' . $sr->rateeid;
         $pairsent[$key] = (float)$sr->avgsent;
     }
@@ -78,9 +84,12 @@ if ($mgr->table_exists('spe_sentiment')) {
 // Scores and peer comments
 echo html_writer::tag('h3', 'Scores & Comments');
 
-if (!$mgr->table_exists('spe_rating')) {
+if (!$mgr->table_exists('spe_rating')) 
+{
     echo $OUTPUT->notification('Table <code>spe_rating</code> does not exist. Run plugin upgrade.', 'notifyproblem');
-} else {
+} 
+else 
+{
     $sqlratings = "SELECT r.rateeid,
                           r.raterid,
                           u1.firstname AS rater_first, u1.lastname AS rater_last,
@@ -93,13 +102,18 @@ if (!$mgr->table_exists('spe_rating')) {
                  ORDER BY r.raterid, r.rateeid, r.criterion";
     $rows = $DB->get_records_sql($sqlratings, $params);
 
-    if (!$rows) {
+    if (!$rows) 
+    {
         echo $OUTPUT->notification('No ratings found.', 'notifywarning');
-    } else {
+    } 
+    else 
+    {
         $byPair = [];
-        foreach ($rows as $r) {
+        foreach ($rows as $r) 
+        {
             $key = $r->raterid . '->' . $r->rateeid;
-            if (!isset($byPair[$key])) {
+            if (!isset($byPair[$key])) 
+            {
                 $byPair[$key] = [
                     'rater'   => $mkname($r->rater_first, $r->rater_last),
                     'ratee'   => $mkname($r->ratee_first, $r->ratee_last),
@@ -110,16 +124,19 @@ if (!$mgr->table_exists('spe_rating')) {
                 ];
             }
             $byPair[$key]['scores'][$r->criterion] = (int)$r->score;
-            if (!empty($r->comment)) {
+            if (!empty($r->comment)) 
+            {
                 $byPair[$key]['comment'] = $r->comment;
             }
         }
 
-        foreach ($byPair as $key => &$pair) {
+        foreach ($byPair as $key => &$pair) 
+        {
             $pair['avgscore'] = !empty($pair['scores'])
                 ? (array_sum($pair['scores']) / count($pair['scores']))
                 : 0.0;
-            if (array_key_exists($key, $pairsent)) {
+            if (array_key_exists($key, $pairsent)) 
+            {
                 $pair['avgsent'] = (float)$pairsent[$key];
             }
         }
@@ -128,7 +145,8 @@ if (!$mgr->table_exists('spe_rating')) {
         $table = new html_table();
         $table->head = ['Rater', 'Ratee', 'Avg Score', 'Comment (excerpt)', 'Label'];
 
-        foreach ($byPair as $key => $pair) {
+        foreach ($byPair as $key => $pair) 
+        {
             $avg = (float) $pair['avgscore'];
 
             $comment = (string)($pair['comment'] ?? '');
@@ -141,19 +159,24 @@ if (!$mgr->table_exists('spe_rating')) {
             $chipmeta = '';
             $chipclass = 'spe-chip disparity';
 
-            if (isset($disparities[$key])) {
+            if (isset($disparities[$key])) 
+            {
                 $d = $disparities[$key];
                 $when  = $d['time'] ? userdate($d['time']) : '';
                 $meta  = $when ? " <span class='spe-mono'>@ {$when}</span>" : '';
                 $label = $d['label'] !== '' ? s($d['label']) : 'Yes';
                 $chiptext = "Disparity: Yes.";
                 $chipmeta = $meta;
-            } else {
+            } 
+            else 
+            {
                 $sent = $pair['avgsent'];
-                if ($sent !== null) {
+                if ($sent !== null) 
+                {
                     $hiScoreNegSent = ($avg >= $RULES->hi_score_threshold) && ($sent <= $RULES->neg_sent_threshold);
                     $loScorePosSent = ($avg <= $RULES->lo_score_threshold) && ($sent >= $RULES->pos_sent_threshold);
-                    if ($hiScoreNegSent || $loScorePosSent) {
+                    if ($hiScoreNegSent || $loScorePosSent) 
+                    {
                         $chiptext = 'Disparity: score/comment mismatch';
                         $chipmeta = " <span class='spe-mono'>avg=" . format_float($avg, 2) .
                                     '; sent=' . format_float($sent, 2) . '</span>';
@@ -161,11 +184,13 @@ if (!$mgr->table_exists('spe_rating')) {
                 }
             }
 
-            if ($chiptext !== '') {
+            if ($chiptext !== '') 
+            {
                 $disphtml = html_writer::tag('span', $chiptext . $chipmeta, ['class' => $chipclass]);
             }
 
-            $table->data[] = [
+            $table->data[] = 
+            [
                 s($pair['rater']),
                 s($pair['ratee']),
                 format_float($avg, 2),
@@ -181,9 +206,12 @@ if (!$mgr->table_exists('spe_rating')) {
 // Sentiment analysis queue and result
 echo html_writer::tag('h3', 'Queued Texts & NLP Results');
 
-if (!$mgr->table_exists('spe_sentiment')) {
+if (!$mgr->table_exists('spe_sentiment')) 
+{
     echo $OUTPUT->notification('Table <code>spe_sentiment</code> does not exist. Run plugin upgrade.', 'notifyproblem');
-} else {
+} 
+else 
+{
     $sqlsent = "SELECT s.id, s.raterid, s.rateeid, s.type, s.label, s.sentiment, s.status,
                        s.text, s.timecreated, s.timemodified,
                        ur.firstname AS rater_first, ur.lastname AS rater_last,
@@ -195,15 +223,20 @@ if (!$mgr->table_exists('spe_sentiment')) {
               ORDER BY s.timecreated DESC, s.id DESC";
     $sentrows = $DB->get_records_sql($sqlsent, $params);
 
-    if (!$sentrows) {
+    if (!$sentrows) 
+    {
         echo $OUTPUT->notification('No NLP queue entries found for this activity.', 'notifywarning');
-    } else {
+    } 
+    else 
+    {
         $table2 = new html_table();
         $table2->head = ['ID', 'Type', 'Rater', 'Target', 'Status', 'Label', 'Score', 'Excerpt'];
 
-        foreach ($sentrows as $srow) {
+        foreach ($sentrows as $srow) 
+        {
             $typekey = (string)($srow->type ?? '');
-            $typemap = [
+            $typemap = 
+            [
                 'peer_comment' => 'peer comment',
                 'reflection'   => 'reflection',
                 'selfdesc'     => 'self-description',
@@ -218,7 +251,8 @@ if (!$mgr->table_exists('spe_sentiment')) {
             $status = s($srow->status);
             $excerpt = s(core_text::substr($srow->text ?? '', 0));
 
-            $table2->data[] = [
+            $table2->data[] = 
+            [
                 $srow->id,
                 s($type),
                 s($rater),

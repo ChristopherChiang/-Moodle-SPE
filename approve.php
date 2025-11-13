@@ -24,7 +24,8 @@ $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], '*', MUST_EXI
 
 // Fetch the student submission
 $submission = $DB->get_record('spe_submission', ['speid' => $spe->id, 'userid' => $userid], '*', IGNORE_MISSING);
-if (!$submission) {
+if (!$submission) 
+{
     echo $OUTPUT->notification('No submission found for this user.', 'notifyproblem');
     echo $OUTPUT->continue_button(new moodle_url('/mod/spe/view.php', ['id' => $cm->id]));
     echo $OUTPUT->footer();
@@ -34,7 +35,8 @@ if (!$submission) {
 // Collect all ratings 
 $ratings = $DB->get_records('spe_rating', ['speid' => $spe->id, 'raterid' => $userid], 'rateeid, criterion ASC');
 
-if (!$confirm) {
+if (!$confirm) 
+{
     // Show confirmation screen 
     $summary = html_writer::start_div();
     $summary .= html_writer::tag('p', 'You are about to approve the submission for: <strong>' . fullname($user) . '</strong>.');
@@ -54,7 +56,8 @@ if (!$confirm) {
 require_sesskey();
 
 // Queue texts into spe_sentiment
-if ($DB->get_manager()->table_exists('spe_sentiment') && !empty($submission->reflection)) {
+if ($DB->get_manager()->table_exists('spe_sentiment') && !empty($submission->reflection)) 
+{
     $DB->insert_record('spe_sentiment', (object)[
         'speid'       => $spe->id,
         'raterid'     => $userid,
@@ -68,14 +71,19 @@ if ($DB->get_manager()->table_exists('spe_sentiment') && !empty($submission->ref
 
 // Peer comments
 $peercomments = [];
-foreach ($ratings as $r) {
-    if (!empty($r->comment)) {
+foreach ($ratings as $r) 
+{
+    if (!empty($r->comment)) 
+    {
         $peercomments[$r->rateeid] = $r->comment;
     }
 }
-foreach ($peercomments as $rateeid => $commenttext) {
-    if ($DB->get_manager()->table_exists('spe_sentiment') && trim($commenttext) !== '') {
-        $DB->insert_record('spe_sentiment', (object)[
+foreach ($peercomments as $rateeid => $commenttext) 
+{
+    if ($DB->get_manager()->table_exists('spe_sentiment') && trim($commenttext) !== '') 
+    {
+        $DB->insert_record('spe_sentiment', (object)
+        [
             'speid'       => $spe->id,
             'raterid'     => $userid,
             'rateeid'     => $rateeid,

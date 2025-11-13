@@ -16,16 +16,20 @@ $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('incourse');
 $PAGE->add_body_class('spe-compact spe-left');
 
+
 // Instructor dashboard
-if (has_capability('mod/spe:manage', $context) && !is_siteadmin()) {
-    redirect(
+if (has_capability('mod/spe:manage', $context) && !is_siteadmin()) 
+{
+    redirect
+    (
         new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]),
         null, // no message
         0     // immediate
     );
     exit;
 }
-if (has_capability('mod/spe:manage', $context)) {
+if (has_capability('mod/spe:manage', $context)) 
+{
     $PAGE->set_button(
         $OUTPUT->single_button(
             new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]),
@@ -41,12 +45,14 @@ const SPE_SCORE_MIN = 5;
 const SPE_SCORE_MAX = 25;  
 
 // Only one time submission
-$existing = $DB->get_record('spe_submission', [
+$existing = $DB->get_record('spe_submission', 
+[
     'speid'  => $cm->instance,
     'userid' => $USER->id
 ], '*', IGNORE_MISSING);
 
-if ($existing) {
+if ($existing) 
+{
     $submissionurl = new moodle_url('/mod/spe/submission.php', ['id' => $cm->id]);
     redirect($submissionurl, get_string('alreadysubmitted', 'spe'), 2);
     exit;
@@ -71,8 +77,10 @@ echo html_writer::tag('div', '
 
 
 // Function to count words 
-function spe_wordcount(string $text): int {
-    if (preg_match_all("/[\\p{L}\\p{N}’']+/u", $text, $m)) {
+function spe_wordcount(string $text): int 
+{
+    if (preg_match_all("/[\\p{L}\\p{N}’']+/u", $text, $m)) 
+    {
         return count($m[0]);
     }
     return 0;
@@ -80,7 +88,8 @@ function spe_wordcount(string $text): int {
 
 
 // Criteria
-$criteria = [
+$criteria = 
+[
     'effortdocs'    => 'The amount of work and effort put into the Requirements/Analysis Document, the Project Management Plan, and the Design Document.',
     'teamwork'      => 'Willingness to work as part of the group and taking responsibility.',
     'communication' => 'Communication within the group and participation in meetings.',
@@ -91,11 +100,14 @@ $criteria = [
 // Gather peers 
 $peers = [];
 $usergroups = groups_get_user_groups($course->id, $USER->id);
-if (!empty($usergroups[0])) {
+if (!empty($usergroups[0])) 
+{
     $mygroupid = reset($usergroups[0]);
     $members   = groups_get_members($mygroupid, 'u.id, u.firstname, u.lastname, u.username');
-    foreach ($members as $u) {
-        if ((int)$u->id !== (int)$USER->id) {
+    foreach ($members as $u) 
+    {
+        if ((int)$u->id !== (int)$USER->id) 
+        {
             $peers[] = $u;
         }
     }
@@ -112,7 +124,8 @@ $rawdraft  = (string) get_user_preferences($draftkey, '', $USER);
 $draftdata = $rawdraft ? json_decode($rawdraft, true) : null;
 
 // Prefill 
-$prefill = [
+$prefill = 
+[
     'selfdesc'   => '',
     'reflection' => '',
     'selfscores' => [],
@@ -121,25 +134,32 @@ $prefill = [
 ];
 
 // Merge draft into prefill 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $draftdata) {
-    foreach (['selfdesc','reflection'] as $k) {
-        if (!empty($draftdata[$k]) && is_string($draftdata[$k])) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $draftdata) 
+{
+    foreach (['selfdesc','reflection'] as $k) 
+    {
+        if (!empty($draftdata[$k]) && is_string($draftdata[$k])) 
+        {
             $prefill[$k] = $draftdata[$k];
         }
     }
-    if (!empty($draftdata['selfscores']) && is_array($draftdata['selfscores'])) {
+    if (!empty($draftdata['selfscores']) && is_array($draftdata['selfscores'])) 
+    {
         $prefill['selfscores'] = array_merge($prefill['selfscores'], $draftdata['selfscores']);
     }
-    if (!empty($draftdata['peerscores']) && is_array($draftdata['peerscores'])) {
+    if (!empty($draftdata['peerscores']) && is_array($draftdata['peerscores'])) 
+    {
         $prefill['peerscores'] = array_merge($prefill['peerscores'], $draftdata['peerscores']);
     }
-    if (!empty($draftdata['peertexts']) && is_array($draftdata['peertexts'])) {
+    if (!empty($draftdata['peertexts']) && is_array($draftdata['peertexts'])) 
+    {
         $prefill['peertexts']  = array_merge($prefill['peertexts'], $draftdata['peertexts']);
     }
 }
 
 // Submission handling
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) 
+{
 
     // collect inputs
     $selfdesc   = trim(optional_param('selfdesc', '', PARAM_RAW));
@@ -152,15 +172,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
 
     $peerscores = [];
     $peertexts  = [];
-    foreach ($peers as $p) {
+    foreach ($peers as $p) 
+    {
         $peertexts[$p->id] = trim(optional_param("comment_{$p->id}", '', PARAM_RAW_TRIMMED));
-        foreach ($criteria as $key => $label) {
+        foreach ($criteria as $key => $label) 
+        {
             $peerscores[$p->id][$key] = optional_param("peer_{$p->id}_{$key}", 0, PARAM_INT);
         }
     }
 
     // Keep for re-render on validation errors
-    $prefill = [
+    $prefill = 
+    [
         'selfdesc'   => $selfdesc,
         'reflection' => $reflection,
         'selfscores' => $selfscores,
@@ -171,27 +194,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
     // Validate
     $errors   = [];
     $refwords = spe_wordcount($reflection);
-    if ($refwords < 100) {
+    if ($refwords < 100) 
+    {
         $errors[] = "Reflection must be at least 100 words (currently $refwords).";
     }
 
-    if (!empty($errors)) {
-        foreach ($errors as $e) {
+    if (!empty($errors)) 
+    {
+        foreach ($errors as $e) 
+        {
             echo $OUTPUT->notification($e, 'notifyproblem');
         }
         $submitted = 0;
 
-    } else {
+    } 
+    else 
+    {
 
         // Prevent double insert 
-        if ($DB->record_exists('spe_submission', ['speid' => $cm->instance, 'userid' => $USER->id])) {
+        if ($DB->record_exists('spe_submission', ['speid' => $cm->instance, 'userid' => $USER->id])) 
+        {
             $submissionurl = new moodle_url('/mod/spe/submission.php', ['id' => $cm->id]);
             redirect($submissionurl, get_string('alreadysubmitted', 'mod_spe'), 2);
             exit;
         }
 
         // Insert core submission
-        $DB->insert_record('spe_submission', (object)[
+        $DB->insert_record('spe_submission', (object)
+        [
             'speid'       => $cm->instance,
             'userid'      => $USER->id,
             'selfdesc'    => $selfdesc,
@@ -205,10 +235,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
         $DB->delete_records('spe_rating', ['speid' => $cm->instance, 'raterid' => $USER->id]);
 
         // Self scores
-        foreach ($criteria as $key => $label) {
+        foreach ($criteria as $key => $label) 
+        {
             $score = $selfscores[$key] ?? 0;
-            if ($score >= 1 && $score <= 5) {
-                $DB->insert_record('spe_rating', (object)[
+            if ($score >= 1 && $score <= 5) 
+            {
+                $DB->insert_record('spe_rating', (object)
+                [
                     'speid'       => $cm->instance,
                     'raterid'     => $USER->id,
                     'rateeid'     => $USER->id,
@@ -221,12 +254,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
         }
 
         // Peer scores
-        foreach ($peers as $p) {
+        foreach ($peers as $p) 
+        {
             $peercomment = $peertexts[$p->id] ?? '';
-            foreach ($criteria as $key => $label) {
+            foreach ($criteria as $key => $label) 
+            {
                 $score = $peerscores[$p->id][$key] ?? 0;
-                if ($score >= 1 && $score <= 5) {
-                    $DB->insert_record('spe_rating', (object)[
+                if ($score >= 1 && $score <= 5) 
+                {
+                    $DB->insert_record('spe_rating', (object)
+                    [
                         'speid'       => $cm->instance,
                         'raterid'     => $USER->id,
                         'rateeid'     => $p->id,
@@ -240,13 +277,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
         }
 
         // Queue text for sentiment analysis
-        if ($DB->get_manager()->table_exists('spe_sentiment')) {
+        if ($DB->get_manager()->table_exists('spe_sentiment')) 
+        {
 
             // Queue each peer comment
-            foreach ($peers as $p) {
+            foreach ($peers as $p) 
+            {
                 $peercomment = $peertexts[$p->id] ?? '';
-                if ($peercomment !== '') {
-                    $DB->insert_record('spe_sentiment', (object)[
+                if ($peercomment !== '') 
+                {
+                    $DB->insert_record('spe_sentiment', (object)
+                    [
                         'speid'       => $cm->instance,
                         'raterid'     => $USER->id,    
                         'rateeid'     => $p->id,       
@@ -259,14 +300,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
             }
 
             // Queue reflection
-            if ($reflection !== '') {
-                $DB->delete_records('spe_sentiment', [
+            if ($reflection !== '') 
+            {
+                $DB->delete_records('spe_sentiment', 
+                [
                     'speid'   => $cm->instance,
                     'raterid' => $USER->id,
                     'rateeid' => $USER->id,
                     'type'    => 'reflection'
                 ]);
-                $DB->insert_record('spe_sentiment', (object)[
+                $DB->insert_record('spe_sentiment', (object)
+                [
                     'speid'       => $cm->instance,
                     'raterid'     => $USER->id,
                     'rateeid'     => $USER->id,
@@ -278,15 +322,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
             }
 
             // Queue self-description
-            if ($selfdesc !== '') {
-                $DB->delete_records('spe_sentiment', [
+            if ($selfdesc !== '') 
+            {
+                $DB->delete_records('spe_sentiment', 
+                [
                     'speid'   => $cm->instance,
                     'raterid' => $USER->id,
                     'rateeid' => $USER->id,
                     'type'    => 'selfdesc'
                 ]);
 
-                $DB->insert_record('spe_sentiment', (object)[
+                $DB->insert_record('spe_sentiment', (object)
+                [
                     'speid'       => $cm->instance,
                     'raterid'     => $USER->id,  
                     'rateeid'     => $USER->id,  
@@ -308,9 +355,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
 }
 
 // Render form
-if (!$submitted) {
+if (!$submitted) 
+{
 
-    echo html_writer::start_tag('form', [
+    echo html_writer::start_tag('form', 
+    [
         'method' => 'post',
         'action' => new moodle_url('/mod/spe/view.php', ['id' => $cm->id]),
     ]);
@@ -321,11 +370,13 @@ if (!$submitted) {
     // Self Evaluation 
     echo html_writer::tag('h3', 'Self Evaluation');
     $sel = $prefill['selfscores'] ?? [];
-    foreach ($criteria as $key => $label) {
+    foreach ($criteria as $key => $label) 
+    {
         echo html_writer::tag('p', $label);
         echo '<select name="self_' . $key . '" required>';
         echo '<option value="">--</option>';
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 5; $i++) 
+        {
             $selected = (isset($sel[$key]) && (int)$sel[$key] === $i) ? ' selected' : '';
             echo "<option value=\"$i\"$selected>$i</option>";
         }
@@ -334,7 +385,8 @@ if (!$submitted) {
 
     // Self description
     echo html_writer::tag('h4', 'Briefly describe how you believe you contributed to the project process:');
-    echo html_writer::tag('textarea', $prefill['selfdesc'] ?? '', [
+    echo html_writer::tag('textarea', $prefill['selfdesc'] ?? '', 
+    [
         'name'  => 'selfdesc',
         'rows'  => 4,
         'cols'  => 80,
@@ -343,7 +395,8 @@ if (!$submitted) {
 
     // Reflection
     echo html_writer::tag('h4', 'Reflection (minimum 100 words)');
-    echo html_writer::tag('textarea', $prefill['reflection'] ?? '', [
+    echo html_writer::tag('textarea', $prefill['reflection'] ?? '', 
+    [
         'name'  => 'reflection',
         'rows'  => 6,
         'cols'  => 80,
@@ -351,20 +404,24 @@ if (!$submitted) {
     ]);
 
     // Peer Evaluation
-    if (!empty($peers)) {
+    if (!empty($peers)) 
+    {
         echo html_writer::tag('h3', 'Evaluation of Team Members');
 
         $psel  = $prefill['peerscores'] ?? [];
         $ptext = $prefill['peertexts']  ?? [];
 
-        foreach ($peers as $p) {
+        foreach ($peers as $p) 
+        {
             echo html_writer::tag('h4', 'Member: ' . fullname($p) . " ({$p->username})");
 
-            foreach ($criteria as $key => $label) {
+            foreach ($criteria as $key => $label) 
+            {
                 echo html_writer::tag('p', $label);
                 echo '<select name="peer_' . $p->id . '_' . $key . '" required>';
                 echo '<option value="">--</option>';
-                for ($i = 1; $i <= 5; $i++) {
+                for ($i = 1; $i <= 5; $i++) 
+                {
                     $selected = (isset($psel[$p->id][$key]) && (int)$psel[$p->id][$key] === $i) ? ' selected' : '';
                     echo "<option value=\"$i\"$selected>$i</option>";
                 }
@@ -372,7 +429,8 @@ if (!$submitted) {
             }
 
             echo html_writer::tag('p', 'Briefly describe how you believe this person contributed to the project process:');
-            echo html_writer::tag('textarea', $ptext[$p->id] ?? '', [
+            echo html_writer::tag('textarea', $ptext[$p->id] ?? '', 
+            [
                 'name'  => "comment_{$p->id}",
                 'rows'  => 4,
                 'cols'  => 80,
@@ -381,7 +439,9 @@ if (!$submitted) {
 
             echo html_writer::empty_tag('hr');
         }
-    } else {
+    } 
+    else 
+    {
         echo $OUTPUT->notification('No peers found in your group. You can still submit your self-evaluation.', 'notifywarning');
     }
 
@@ -397,7 +457,8 @@ if (!$submitted) {
 
     ?>
     <script>
-    (function () {
+    (function () 
+    {
         // Autosave draft functionality
         const form = document.querySelector('form[action*="/mod/spe/view.php"]');
         if (!form) return;
@@ -406,8 +467,10 @@ if (!$submitted) {
         const sesskeyVal = "<?php echo sesskey(); ?>";
         const draftUrl   = M.cfg.wwwroot + "/mod/spe/draft.php?id=" + cmid + "&sesskey=" + encodeURIComponent(sesskeyVal);
 
-        function readFormJSON() {
-            const data = {
+        function readFormJSON() 
+        {
+            const data = 
+            {
                 selfdesc:   form.querySelector('[name="selfdesc"]')?.value || '',
                 reflection: form.querySelector('[name="reflection"]')?.value || '',
                 selfscores: {},
@@ -415,14 +478,17 @@ if (!$submitted) {
                 peertexts:  {}
             };
 
-            form.querySelectorAll('select[name^="self_"]').forEach(sel => {
+            form.querySelectorAll('select[name^="self_"]').forEach(sel => 
+            {
                 const key = sel.name.replace(/^self_/, '');
                 data.selfscores[key] = sel.value ? parseInt(sel.value, 10) : 0;
             });
 
-            form.querySelectorAll('select[name^="peer_"]').forEach(sel => {
+            form.querySelectorAll('select[name^="peer_"]').forEach(sel => 
+            {
                 const parts = sel.name.split('_');
-                if (parts.length >= 3) {
+                if (parts.length >= 3) 
+                {
                     const pid = parts[1];
                     const key = parts.slice(2).join('_');
                     if (!data.peerscores[pid]) data.peerscores[pid] = {};
@@ -430,14 +496,17 @@ if (!$submitted) {
                 }
             });
 
-            form.querySelectorAll('textarea[name^="comment_"]').forEach(t => {
+            form.querySelectorAll('textarea[name^="comment_"]').forEach(t => 
+            {
                 const pid = t.name.replace(/^comment_/, '');
                 data.peertexts[pid] = t.value || '';
             });
 
             const json = JSON.stringify(data);
-            if (json.length > 180000) {
-                try {
+            if (json.length > 180000) 
+            {
+                try 
+                {
                     const d = JSON.parse(json);
                     d.reflection = (d.reflection || '').slice(0, 30000);
                     for (const k in d.peertexts) d.peertexts[k] = (d.peertexts[k] || '').slice(0, 15000);
@@ -448,14 +517,17 @@ if (!$submitted) {
         }
 
         let saveTimer = null, lastSent = '';
-        function queueSave() {
+        function queueSave() 
+        {
             window.clearTimeout(saveTimer);
             saveTimer = window.setTimeout(async () => {
                 const body = readFormJSON();
                 if (body === lastSent) return;
                 lastSent = body;
-                try {
-                    await fetch(draftUrl + "&action=save", {
+                try 
+                {
+                    await fetch(draftUrl + "&action=save", 
+                    {
                         method: "POST",
                         headers: {"Content-Type":"application/json"},
                         body
@@ -467,8 +539,10 @@ if (!$submitted) {
         form.addEventListener('input', queueSave);
         form.addEventListener('change', queueSave);
 
-        (async function restoreDraft() {
-            try {
+        (async function restoreDraft() 
+        {
+            try 
+            {
                 const res = await fetch(draftUrl + "&action=load");
                 const data = await res.json();
                 if (!data || data.exists === false) return;
@@ -476,23 +550,29 @@ if (!$submitted) {
                 if (data.selfdesc && !form.selfdesc?.value) form.selfdesc.value = data.selfdesc;
                 if (data.reflection && !form.reflection?.value) form.reflection.value = data.reflection;
 
-                if (data.selfscores) {
+                if (data.selfscores) 
+                {
                     Object.keys(data.selfscores).forEach(k => {
                         const el = form.querySelector(`[name="self_${k}"]`);
                         if (el && !el.value) el.value = data.selfscores[k] || '';
                     });
                 }
-                if (data.peerscores) {
-                    Object.keys(data.peerscores).forEach(pid => {
+                if (data.peerscores) 
+                {
+                    Object.keys(data.peerscores).forEach(pid => 
+                    {
                         const obj = data.peerscores[pid];
-                        Object.keys(obj || {}).forEach(k => {
+                        Object.keys(obj || {}).forEach(k => 
+                        {
                             const el = form.querySelector(`[name="peer_${pid}_${k}"]`);
                             if (el && !el.value) el.value = obj[k] || '';
                         });
                     });
                 }
-                if (data.peertexts) {
-                    Object.keys(data.peertexts).forEach(pid => {
+                if (data.peertexts) 
+                {
+                    Object.keys(data.peertexts).forEach(pid => 
+                    {
                         const el = form.querySelector(`[name="comment_${pid}"]`);
                         if (el && !el.value) el.value = data.peertexts[pid] || '';
                     });
@@ -501,8 +581,10 @@ if (!$submitted) {
         })();
 
         // Word count
-        function wordCount(text) {
-            try {
+        function wordCount(text) 
+        {
+            try 
+            {
                 const m = text.match(/[\p{L}\p{N}’']+/gu);
                 return m ? m.length : 0;
             } catch (e) {
@@ -512,7 +594,8 @@ if (!$submitted) {
             }
         }
 
-        function attachHud(textarea) {
+        function attachHud(textarea) 
+        {
             if (!textarea || textarea._wcHudAttached) return;
             textarea._wcHudAttached = true;
 

@@ -11,8 +11,12 @@ require_course_login($course, true, $cm);
 $context = context_module::instance($cm->id);
 
 $canmanage = has_capability('mod/spe:manage', $context);
-if (!$userid) { $userid = $USER->id; }
-if (!$canmanage && (int)$userid !== (int)$USER->id) {
+if (!$userid) 
+{ 
+    $userid = $USER->id; 
+}
+if (!$canmanage && (int)$userid !== (int)$USER->id) 
+{
     print_error('nopermissions', 'error', '', 'download this PDF');
 }
 
@@ -29,8 +33,14 @@ $ratings = $DB->get_records('spe_rating',
 );
 
 // Close session and clear buffer
-while (ob_get_level()) { ob_end_clean(); }
-if (class_exists('\core\session\manager')) { \core\session\manager::write_close(); }
+while (ob_get_level()) 
+{ 
+    ob_end_clean(); 
+}
+if (class_exists('\core\session\manager')) 
+{ 
+    \core\session\manager::write_close(); 
+}
 
 // PDF
 $aname    = $spe ? format_string($spe->name) : format_string($cm->name);
@@ -49,11 +59,14 @@ $pdf->SetFont('helvetica', '', 11);
 $pdf->Cell(0, 7, 'Student: '.fullname($u).' ('.$u->username.')', 0, 1, 'L');
 
 // Submission last modified
-if ($submission) {
+if ($submission) 
+{
     $when = userdate($submission->timemodified ?: $submission->timecreated);
     $pdf->Cell(0, 7, 'Last modified: '.$when, 0, 1, 'L');
     $pdf->Ln(2);
-} else {
+} 
+else 
+{
     $pdf->Ln(2);
 }
 
@@ -61,30 +74,36 @@ $pdf->SetFont('', 'B', 12);
 $pdf->Cell(0, 7, 'Ratings given', 0, 1, 'L');
 $pdf->SetFont('', '', 11);
 
-if ($ratings) {
+if ($ratings) 
+{
     // Fetch names of ratees
     $ids = array_unique(array_map(function($r){ return (int)$r->rateeid; }, $ratings));
     $names = [];
-    if (!empty($ids)) {
+    if (!empty($ids)) 
+    {
         list($in, $params) = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED);
         $names = $DB->get_records_select('user', "id $in", $params, '', 'id, firstname, lastname');
     }
 
     // Group rating rows by ratee.
     $byratee = [];
-    foreach ($ratings as $r) {
+    foreach ($ratings as $r) 
+    {
         $byratee[(int)$r->rateeid][] = $r;
     }
 
     // Name resolver
-    $name_of = function(int $uid) use ($names) {
+    $name_of = function(int $uid) use ($names) 
+    {
         return isset($names[$uid]) ? fullname($names[$uid]) : "User ID $uid";
     };
 
     // Render scores list
-    $render_scores = function(array $items) use ($pdf) {
+    $render_scores = function(array $items) use ($pdf) 
+    {
         $pdf->SetFont('', '', 11);
-        foreach ($items as $r) {
+        foreach ($items as $r) 
+        {
             $crit  = isset($r->criterion) ? (string)$r->criterion : '';
             $score = isset($r->score) ? (int)$r->score : 0;
             $pdf->MultiCell(0, 6, "• {$crit}: {$score}", 0, 'L');
@@ -92,24 +111,32 @@ if ($ratings) {
     };
 
     // Render unique non-empty comments
-    $render_comments = function(array $items) use ($pdf) {
+    $render_comments = function(array $items) use ($pdf) 
+    {
         $seen = [];
         $uniqcomments = [];
-        foreach ($items as $r) {
+        foreach ($items as $r) 
+        {
             $c = isset($r->comment) ? trim($r->comment) : '';
-            if ($c === '') { continue; }
+            if ($c === '') 
+            { 
+                continue; 
+            }
             $key = trim(preg_replace('/\s+/', ' ', core_text::strtolower($c)));
-            if (!isset($seen[$key])) {
+            if (!isset($seen[$key])) 
+            {
                 $seen[$key] = true;
                 $uniqcomments[] = $c;
             }
         }
-        if (!empty($uniqcomments)) {
+        if (!empty($uniqcomments)) 
+        {
             $pdf->Ln(1);
             $pdf->SetFont('', 'B', 11);
             $pdf->Cell(0, 6, 'Comments', 0, 1, 'L');
             $pdf->SetFont('', '', 11);
-            foreach ($uniqcomments as $c) {
+            foreach ($uniqcomments as $c) 
+            {
                 $pdf->MultiCell(0, 6, clean_text($c), 0, 'L');
                 $pdf->Ln(1);
             }
@@ -117,7 +144,8 @@ if ($ratings) {
     };
 
     // Self rating
-    if (!empty($byratee[$userid])) {
+    if (!empty($byratee[$userid])) 
+    {
         $selfitems = $byratee[$userid];
 
         $pdf->SetFont('', 'B', 11);
@@ -130,7 +158,8 @@ if ($ratings) {
         $render_comments($selfitems);
 
         // Reflection
-        if ($submission && trim((string)$submission->reflection) !== '') {
+        if ($submission && trim((string)$submission->reflection) !== '') 
+        {
             $pdf->Ln(1);
             $pdf->SetFont('', 'B', 11);
             $pdf->Cell(0, 6, 'Reflection', 0, 1, 'L');
@@ -147,7 +176,8 @@ if ($ratings) {
         return strcasecmp($name_of((int)$a), $name_of((int)$b));
     });
 
-    foreach ($otherids as $rateeid) {
+    foreach ($otherids as $rateeid) 
+    {
         $items = $byratee[$rateeid];
 
         $pdf->SetFont('', 'B', 11);
@@ -162,7 +192,9 @@ if ($ratings) {
         $pdf->Ln(2);
     }
 
-} else {
+} 
+else 
+{
     $pdf->Cell(0, 6, 'No ratings found.', 0, 1, 'L');
 }
 

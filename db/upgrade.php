@@ -1,24 +1,21 @@
 <?php
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * Upgrade script for the SPE module.
- *
- * @param int $oldversion
- * @return bool
- */
-function xmldb_spe_upgrade(int $oldversion) {
+function xmldb_spe_upgrade(int $oldversion) 
+{
     global $DB;
     $dbman = $DB->get_manager();
 
     // === STEP 1: Initial installation or early upgrade ===
-    if ($oldversion < 2025100600) {
+    if ($oldversion < 2025111300) 
+    {
 
         // --------------------------------------------------------------------
         // Table: spe
         // --------------------------------------------------------------------
         $table = new xmldb_table('spe');
-        if (!$dbman->table_exists($table)) {
+        if (!$dbman->table_exists($table)) 
+        {
             $table->add_field('id',           XMLDB_TYPE_INTEGER,  '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
             $table->add_field('course',       XMLDB_TYPE_INTEGER,  '10', null, XMLDB_NOTNULL, null, null);
             $table->add_field('name',         XMLDB_TYPE_CHAR,    '255', null, XMLDB_NOTNULL, null, null);
@@ -37,7 +34,8 @@ function xmldb_spe_upgrade(int $oldversion) {
         // Table: spe_submission
         // --------------------------------------------------------------------
         $table = new xmldb_table('spe_submission');
-        if (!$dbman->table_exists($table)) {
+        if (!$dbman->table_exists($table)) 
+        {
             $table->add_field('id',           XMLDB_TYPE_INTEGER,  '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
             $table->add_field('speid',        XMLDB_TYPE_INTEGER,  '10', null, XMLDB_NOTNULL, null, null);
             $table->add_field('userid',       XMLDB_TYPE_INTEGER,  '10', null, XMLDB_NOTNULL, null, null);
@@ -59,7 +57,8 @@ function xmldb_spe_upgrade(int $oldversion) {
         // Table: spe_rating
         // --------------------------------------------------------------------
         $table = new xmldb_table('spe_rating');
-        if (!$dbman->table_exists($table)) {
+        if (!$dbman->table_exists($table)) 
+        {
             $table->add_field('id',          XMLDB_TYPE_INTEGER,  '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
             $table->add_field('speid',       XMLDB_TYPE_INTEGER,  '10', null, XMLDB_NOTNULL, null, null);
             $table->add_field('raterid',     XMLDB_TYPE_INTEGER,  '10', null, XMLDB_NOTNULL, null, null);
@@ -82,7 +81,8 @@ function xmldb_spe_upgrade(int $oldversion) {
         // Table: spe_teammap
         // --------------------------------------------------------------------
         $table = new xmldb_table('spe_teammap');
-        if (!$dbman->table_exists($table)) {
+        if (!$dbman->table_exists($table)) 
+        {
             $table->add_field('id',          XMLDB_TYPE_INTEGER,  '10',  null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
             $table->add_field('speid',       XMLDB_TYPE_INTEGER,  '10',  null, XMLDB_NOTNULL, null, null);
             $table->add_field('userid',      XMLDB_TYPE_INTEGER,  '10',  null, XMLDB_NOTNULL, null, null);
@@ -104,7 +104,8 @@ function xmldb_spe_upgrade(int $oldversion) {
         // Table: spe_sentiment
         // --------------------------------------------------------------------
         $table = new xmldb_table('spe_sentiment');
-        if (!$dbman->table_exists($table)) {
+        if (!$dbman->table_exists($table)) 
+        {
             $table->add_field('id',           XMLDB_TYPE_INTEGER,  '10',   null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
             $table->add_field('speid',        XMLDB_TYPE_INTEGER,  '10',   null, XMLDB_NOTNULL, null, null);
             $table->add_field('raterid',      XMLDB_TYPE_INTEGER,  '10',   null, XMLDB_NOTNULL, null, null);
@@ -125,7 +126,8 @@ function xmldb_spe_upgrade(int $oldversion) {
         // Table: spe_disparity
         // --------------------------------------------------------------------
         $table = new xmldb_table('spe_disparity');
-        if (!$dbman->table_exists($table)) {
+        if (!$dbman->table_exists($table)) 
+        {
             $table->add_field('id',          XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
             $table->add_field('speid',       XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0');
             $table->add_field('raterid',     XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0');
@@ -140,22 +142,41 @@ function xmldb_spe_upgrade(int $oldversion) {
         }
 
         // Savepoint after initial install/upgrade.
-        upgrade_mod_savepoint(true, 2025100600, 'spe');
+        upgrade_mod_savepoint(true, 2025111300, 'spe');
     }
 
     // === STEP 2: Add missing fields to spe_disparity table ===
-    if ($oldversion < 2025111100) {
+    if ($oldversion < 2025111300) 
+    {
         $table = new xmldb_table('spe_disparity');
 
-        // Add commenttext field if it doesn’t exist.
+        // If table is missing, create full baseline schema first.
+        if (!$dbman->table_exists($table)) 
+        {
+            $table->add_field('id',          XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('speid',       XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0');
+            $table->add_field('raterid',     XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0');
+            $table->add_field('rateeid',     XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0');
+            $table->add_field('label',       XMLDB_TYPE_CHAR,    '10', null, null, null, '');
+            $table->add_field('scoretotal',  XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, null, null, '0');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0');
+
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_index('spe_rater_ratee_ix', XMLDB_INDEX_UNIQUE, ['speid','raterid','rateeid']);
+
+            $dbman->create_table($table);
+        }
+
+        // Now safely add new fields if they are missing.
         $field = new xmldb_field('commenttext', XMLDB_TYPE_TEXT, null, null, null, null, null, 'scoretotal');
-        if (!$dbman->field_exists($table, $field)) {
+        if (!$dbman->field_exists($table, $field)) 
+        {
             $dbman->add_field($table, $field);
         }
 
-        // Add isdisparity field if it doesn’t exist.
         $field = new xmldb_field('isdisparity', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'commenttext');
-        if (!$dbman->field_exists($table, $field)) {
+        if (!$dbman->field_exists($table, $field)) 
+        {
             $dbman->add_field($table, $field);
         }
 

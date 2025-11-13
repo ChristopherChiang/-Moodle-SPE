@@ -33,7 +33,8 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading('SPE — Grade book');
 
 // Export links
-if (has_capability('mod/spe:viewreports', $context)) {
+if (has_capability('mod/spe:viewreports', $context)) 
+{
     $here    = $PAGE->url->out_as_local_url(false);
     $csvpage = new moodle_url('/mod/spe/export_csv.php', ['id' => $cm->id, 'returnurl' => $here]);
     $pdfpage = new moodle_url('/mod/spe/export_pdf.php', ['id' => $cm->id, 'returnurl' => $here]);
@@ -47,7 +48,8 @@ if (has_capability('mod/spe:viewreports', $context)) {
 }
 
 // Criterion headers 
-$criteria = [
+$criteria = 
+[
     'effortdocs'    => 'Effort',
     'teamwork'      => 'Teamwork',
     'communication' => 'Communication',
@@ -62,7 +64,10 @@ $list = $DB->get_fieldset_sql(
     "SELECT DISTINCT rateeid FROM {spe_rating} WHERE speid = :s",
     ['s' => $cm->instance]
 );
-foreach ($list as $uid) { $userids[(int)$uid] = true; }
+foreach ($list as $uid) 
+{ 
+    $userids[(int)$uid] = true; 
+}
 
 // Everyone who made any submission
 $list2 = $DB->get_fieldset_sql(
@@ -71,7 +76,8 @@ $list2 = $DB->get_fieldset_sql(
 );
 foreach ($list2 as $uid) { $userids[(int)$uid] = true; }
 
-if (!$userids) {
+if (!$userids) 
+{
     echo $OUTPUT->notification('No participants detected for this activity.', 'notifyinfo');
     echo $OUTPUT->footer();
     exit;
@@ -95,7 +101,8 @@ $rs = $DB->get_recordset_sql("
   GROUP BY r.rateeid, LOWER(TRIM(r.criterion))
 ", $params);
 
-foreach ($rs as $r) {
+foreach ($rs as $r) 
+{
     $rid  = (int)$r->rateeid;
     $ckey = (string)$r->ckey;
     if ($ckey === 'problemsolving' || $ckey === 'problem solving') {
@@ -118,14 +125,16 @@ $raters = $DB->get_records_sql($sqlraters, $params);
 // Disparity detection 
 $disparity = []; 
 $mgr = $DB->get_manager();
-if ($mgr->table_exists('spe_disparity')) {
+if ($mgr->table_exists('spe_disparity')) 
+{
     $disp_rows = $DB->get_records_sql("
         SELECT DISTINCT rateeid
           FROM {spe_disparity}
          WHERE speid = :speid
            AND isdisparity = 1
     ", ['speid' => $cm->instance]);
-    foreach ($disp_rows as $rowobj) {
+    foreach ($disp_rows as $rowobj) 
+    {
         $disparity[(int)$rowobj->rateeid] = true;
     }
 }
@@ -133,7 +142,8 @@ if ($mgr->table_exists('spe_disparity')) {
 // Search bar
 $searchurl = new moodle_url('/mod/spe/gradebook.php', ['id' => $cm->id]);
 echo html_writer::start_div('', ['style' => 'display:flex; justify-content:flex-end; margin-bottom:8px;']);
-echo html_writer::start_tag('form', [
+echo html_writer::start_tag('form', 
+[
     'method' => 'get',
     'action' => $searchurl->out(false),
     'style'  => 'display:flex; gap:6px; align-items:center;'
@@ -141,13 +151,13 @@ echo html_writer::start_tag('form', [
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => (string)$cm->id]);
 echo html_writer::empty_tag('input', [
     'type' => 'text', 'name' => 'q', 'value' => s($q),
-    'placeholder' => 'Search student', 'style' => 'max-width:260px;'
-]);
+    'placeholder' => 'Search student', 'style' => 'max-width:260px;']);
 
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sort', 'value' => s($sortparam)]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'dir',  'value' => s($dir)]);
 echo html_writer::empty_tag('input', ['type' => 'submit', 'value' => 'Search', 'class' => 'btn btn-secondary']);
-if ($q !== '') {
+if ($q !== '') 
+{
     $clearurl = new moodle_url('/mod/spe/gradebook.php', ['id' => $cm->id]);
     echo html_writer::link($clearurl, 'Clear');
 }
@@ -164,7 +174,8 @@ $make_header = function(string $label, string $key) use ($baseurl, $sortparam, $
     $newdir = ($sortparam === $key && $dir === 'asc') ? 'desc' : 'asc';
     $url = new moodle_url($baseurl, ['sort' => $key, 'dir' => $newdir]);
     $arrow = '';
-    if ($sortparam === $key && $sortparam !== '') {
+    if ($sortparam === $key && $sortparam !== '') 
+    {
         $arrow = ($dir === 'asc') ? ' ▲' : ' ▼';
     }
     return html_writer::link($url, $label . $arrow);
@@ -173,7 +184,8 @@ $make_header = function(string $label, string $key) use ($baseurl, $sortparam, $
 $headlabels = [];
 $headlabels[] = $make_header('Student', 'name');    
 $headlabels[] = $make_header('Groups',  'groups');   
-foreach ($criteria as $key => $label) {
+foreach ($criteria as $key => $label) 
+{
     $headlabels[] = $make_header($label, $key);
 }
 $headlabels[] = $make_header('Evaluation (50%)', 'eval');
@@ -185,10 +197,15 @@ $table->head = array_map('strval', $headlabels);
 $table->data = [];
 $rows = [];
 
-foreach ($users as $uid => $u) {
-    if ($qnorm !== '') {
+foreach ($users as $uid => $u) 
+{
+    if ($qnorm !== '') 
+    {
         $namestr = core_text::strtolower(fullname($u) . ' (' . $u->username . ')');
-        if (core_text::strpos($namestr, $qnorm) === false) { continue; }
+        if (core_text::strpos($namestr, $qnorm) === false)
+        { 
+            continue; 
+        }
     }
 
     $name = fullname($u) . ' (' . s($u->username) . ')';
@@ -199,8 +216,10 @@ foreach ($users as $uid => $u) {
 
     $groups = groups_get_all_groups($course->id, $uid, 0, 'g.id, g.name');
     $groupnames = [];
-    if ($groups) {
-        foreach ($groups as $g) {
+    if ($groups) 
+    {
+        foreach ($groups as $g) 
+        {
             $groupnames[] = format_string($g->name);
         }
     }
@@ -209,7 +228,8 @@ foreach ($users as $uid => $u) {
 
     $sumtotal = 0;
     $percrit  = [];
-    foreach ($criteria as $ckey => $_label) {
+    foreach ($criteria as $ckey => $_label) 
+    {
         $v = isset($matrix[$uid][$ckey]) ? (int)$matrix[$uid][$ckey] : 0;
         $sumtotal += $v;
         $percrit[$ckey] = $v;
@@ -221,7 +241,8 @@ foreach ($users as $uid => $u) {
 
     // Evaluation
     $eval50 = '-';
-    if ($ratercount > 0) {
+    if ($ratercount > 0) 
+    {
         $den = $ratercount * 25.0;
         $ratio = $den > 0 ? ($sumtotal / $den) : 0.0;        
         $ratio = max(0.0, min(1.0, $ratio));
@@ -237,7 +258,10 @@ foreach ($users as $uid => $u) {
            AND s.type    = 'peer_comment'
     ", ['speid' => $cm->instance, 'uid' => $uid]);
 
-    if ($avgnorm === false || $avgnorm === null) { $avgnorm = 0.5; }
+    if ($avgnorm === false || $avgnorm === null) 
+    { 
+        $avgnorm = 0.5; 
+    }
     $avgnorm = (float)$avgnorm;
     if ($avgnorm < 0) $avgnorm = 0.0;
     if ($avgnorm > 1) $avgnorm = 1.0;
@@ -254,27 +278,41 @@ foreach ($users as $uid => $u) {
 
     // Disparity
     $hasdisp = !empty($disparity[$uid]);
-    if ($hasdisp) {
+    if ($hasdisp) 
+    {
         $row[] = (string) html_writer::tag('span', 'Yes', [
             'style' => 'background:#ff0; padding:0 6px; border-radius:3px; font-weight:600;'
         ]);
-    } else {
+    } 
+    else 
+    {
         $row[] = '';
     }
 
     // Force all cells to strings
-    foreach ($row as $i => $cellval) {
-        if ($cellval instanceof html_table_cell) { $cellval = $cellval->text; }
-        if ($cellval instanceof html_table_row)  { $cellval = ''; }
-        if (is_array($cellval))                  { $cellval = json_encode($cellval); }
+    foreach ($row as $i => $cellval) 
+    {
+        if ($cellval instanceof html_table_cell) 
+        { 
+            $cellval = $cellval->text; 
+        }
+        if ($cellval instanceof html_table_row)  
+        { $cellval = ''; 
+        }
+        if (is_array($cellval))                  
+        { 
+            $cellval = json_encode($cellval); 
+        }
         $row[$i] = (string)$cellval;
     }
 
     // Collect row & values for sorting
-    $rows[] = [
+    $rows[] = 
+    [
         'uid'      => (int)$uid,
         'row'      => array_values($row),
-        'sortvals' => [
+        'sortvals' => 
+        [
             'name'       => core_text::strtolower(fullname($u) . ' (' . $u->username . ')'),
             'groups'     => core_text::strtolower($groupsstr),
             'eval'       => is_numeric($eval50) ? (float)$eval50 : -INF,
@@ -290,43 +328,72 @@ $validkeys = array_merge(
     ['name'=>true,'groups'=>true,'eval'=>true,'sent'=>true,'total'=>true,'disparity'=>true],
     array_fill_keys(array_keys($criteria), true)
 );
-if (!array_key_exists($sort, $validkeys)) {
+if (!array_key_exists($sort, $validkeys)) 
+{
     $sort = 'name';
 }
-usort($rows, function($a, $b) use ($sort, $dir) {
+usort($rows, function($a, $b) use ($sort, $dir) 
+{
     $av = $a['sortvals'][$sort] ?? null;
     $bv = $b['sortvals'][$sort] ?? null;
 
     $anum = is_numeric($av);
     $bnum = is_numeric($bv);
-    if ($anum && $bnum) {
+    if ($anum && $bnum) 
+    {
         $cmp = ($av <=> $bv);
-    } else {
+    } 
+    else 
+    {
         $as = (string)$av;
         $bs = (string)$bv;
         $cmp = strcoll($as, $bs);
-        if ($cmp === 0) { $cmp = ($a['uid'] <=> $b['uid']); }
+        if ($cmp === 0) 
+        { 
+            $cmp = ($a['uid'] <=> $b['uid']); 
+        }
     }
     return ($dir === 'asc') ? $cmp : -$cmp;
 });
 
-foreach ($rows as $r) {
+foreach ($rows as $r) 
+{
     $table->data[] = $r['row'];
 }
 
-if (!empty($table->head)) {
-    foreach ($table->head as $i => $h) {
-        if ($h instanceof html_table_cell) { $h = $h->text; }
-        if (is_array($h)) { $h = json_encode($h); }
+if (!empty($table->head)) 
+{
+    foreach ($table->head as $i => $h) 
+    {
+        if ($h instanceof html_table_cell) 
+        { 
+            $h = $h->text; 
+        }
+        if (is_array($h)) 
+        { 
+            $h = json_encode($h); 
+        }
         $table->head[$i] = (string)$h;
     }
 }
-if (!empty($table->data)) {
-    foreach ($table->data as $r => $row) {
-        foreach ($row as $c => $cell) {
-            if ($cell instanceof html_table_cell) { $cell = $cell->text; }
-            if ($cell instanceof html_table_row)  { $cell = ''; }
-            if (is_array($cell))                  { $cell = json_encode($cell); }
+if (!empty($table->data)) 
+{
+    foreach ($table->data as $r => $row) 
+    {
+        foreach ($row as $c => $cell) 
+        {
+            if ($cell instanceof html_table_cell) 
+            { 
+                $cell = $cell->text; 
+            }
+            if ($cell instanceof html_table_row)  
+            { 
+                $cell = ''; 
+            }
+            if (is_array($cell))                  
+            { 
+                $cell = json_encode($cell); 
+            }
             $table->data[$r][$c] = (string)$cell;
         }
         $table->data[$r] = array_values($table->data[$r]);

@@ -1,14 +1,17 @@
 <?php
 defined('MOODLE_INTERNAL') || die();
 
-$capabilities = [
+$capabilities = 
+[
 
     // Allow instructors and admin to add new activities
-    'mod/spe:addinstance' => [
+    'mod/spe:addinstance' => 
+    [
         'riskbitmask' => RISK_XSS,
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
-        'archetypes' => [
+        'archetypes' => 
+        [
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW,
         ],
@@ -16,10 +19,12 @@ $capabilities = [
     ],
 
     // Allow all users to view activity
-    'mod/spe:view' => [
+    'mod/spe:view' => 
+    [
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => [
+        'archetypes' => 
+        [
             'student' => CAP_ALLOW,
             'teacher' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
@@ -28,19 +33,23 @@ $capabilities = [
     ],
 
     // Allow students to submit evaluations
-    'mod/spe:submit' => [
+    'mod/spe:submit' => 
+    [
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => [
+        'archetypes' => 
+        [
             'student' => CAP_ALLOW,
         ]
     ],
 
     // Allow instructors and admin to view reports
-    'mod/spe:viewreports' => [
+    'mod/spe:viewreports' => 
+    [
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => [
+        'archetypes' => 
+        [
             'teacher' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW,
@@ -48,10 +57,12 @@ $capabilities = [
     ],
 
     // Allow instructors and admin to upload CSVs
-    'mod/spe:manage' => [
+    'mod/spe:manage' => 
+    [
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => [
+        'archetypes' => 
+        [
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW,
         ]

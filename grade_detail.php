@@ -22,7 +22,8 @@ $PAGE->set_pagelayout('incourse');
 echo $OUTPUT->header();
 
 // Export links
-if (has_capability('mod/spe:viewreports', $context)) {
+if (has_capability('mod/spe:viewreports', $context)) 
+{
     $here    = $PAGE->url->out_as_local_url(false);
     $csvpage = new moodle_url('/mod/spe/export_csv.php', ['id' => $cm->id, 'returnurl' => $here]);
     $pdfpage = new moodle_url('/mod/spe/export_pdf.php', ['id' => $cm->id, 'returnurl' => $here]);
@@ -38,7 +39,8 @@ if (has_capability('mod/spe:viewreports', $context)) {
 echo $OUTPUT->heading('Ratings received by: ' . fullname($ratee) . ' (' . s($ratee->username) . ')');
 
 // Criteria labels 
-$criteria = [
+$criteria = 
+[
     'effortdocs'    => 'Effort',
     'teamwork'      => 'Teamwork',
     'communication' => 'Communication',
@@ -63,7 +65,8 @@ $params = ['speid' => $cm->instance, 'rateeid' => $ratee->id];
 
 $rows = $DB->get_records_sql($sql, $params);
 
-if (!$rows) {
+if (!$rows) 
+{
     echo $OUTPUT->notification('No peer ratings for this student yet.', 'notifyinfo');
     $backurl = new moodle_url('/mod/spe/gradebook.php', ['id' => $cm->id]);
     echo html_writer::div($OUTPUT->single_button($backurl, '← Back to Grade book', 'get'), 'mt-3');
@@ -74,7 +77,8 @@ if (!$rows) {
 // Group by rater
 $byrater = [];
 $raterids = [];
-foreach ($rows as $r) {
+foreach ($rows as $r) 
+{
     $rid = (int)$r->raterid;
     $byrater[$rid][] = $r;
     $raterids[$rid] = true;
@@ -82,7 +86,8 @@ foreach ($rows as $r) {
 
 // Fetch rater user records
 $rusers = [];
-if ($raterids) {
+if ($raterids) 
+{
     list($rinsql, $rinparams) = $DB->get_in_or_equal(array_keys($raterids), SQL_PARAMS_NAMED, 'ru');
     $rusers = $DB->get_records_select('user', "id $rinsql", $rinparams, '', 'id, firstname, lastname, username');
 }
@@ -117,7 +122,8 @@ $get_sentiment_label = function(int $raterid, int $rateeid, string $comment) use
     );
 
     // If not found, get the latest one for this pair
-    if (!$rec) {
+    if (!$rec) 
+    {
         $recs = $DB->get_records(
             'spe_sentiment',
             ['speid' => $cm->instance, 'raterid' => $raterid, 'rateeid' => $rateeid, 'type' => 'peer_comment'],
@@ -125,13 +131,21 @@ $get_sentiment_label = function(int $raterid, int $rateeid, string $comment) use
             '*',
             0, 1
         );
-        if ($recs) { $rec = reset($recs); }
+        if ($recs) 
+        { 
+            $rec = reset($recs); 
+        }
     }
 
-    if (!$rec) { return ''; }
+    if (!$rec) 
+    { 
+        return ''; 
+    }
 
-    foreach (['label','sentiment','category','result','polarity','status'] as $field) {
-        if (isset($rec->$field) && trim((string)$rec->$field) !== '') {
+    foreach (['label','sentiment','category','result','polarity','status'] as $field) 
+    {
+        if (isset($rec->$field) && trim((string)$rec->$field) !== '') 
+        {
             return (string)$rec->$field;
         }
     }
@@ -139,7 +153,8 @@ $get_sentiment_label = function(int $raterid, int $rateeid, string $comment) use
 };
 
 // Render per-rater block
-foreach ($byrater as $rid => $items) {
+foreach ($byrater as $rid => $items) 
+{
     $r = $rusers[$rid] ?? null;
     $rname = $r ? fullname($r) . ' (' . s($r->username) . ')' : 'User ID ' . $rid;
 
@@ -149,17 +164,21 @@ foreach ($byrater as $rid => $items) {
     $comment  = '';
     $total    = 0;
 
-    foreach ($criteria as $ckey => $clabel) {
+    foreach ($criteria as $ckey => $clabel) 
+    {
         $critvals[$ckey] = null;
     }
 
-    foreach ($items as $it) {
+    foreach ($items as $it) 
+    {
         $ckey = (string)$it->criterion;
-        if (array_key_exists($ckey, $critvals)) {
+        if (array_key_exists($ckey, $critvals)) 
+        {
             $critvals[$ckey] = (int)$it->score;
             $total += (int)$it->score;
         }
-        if ($comment === '' && !empty($it->comment)) {
+        if ($comment === '' && !empty($it->comment)) 
+        {
             $comment = (string)$it->comment;
         }
     }
@@ -168,7 +187,8 @@ foreach ($byrater as $rid => $items) {
     $table = new html_table();
     $table->head = ['Criterion', 'Score'];
 
-    foreach ($criteria as $ckey => $clabel) {
+    foreach ($criteria as $ckey => $clabel) 
+    {
         $val = is_null($critvals[$ckey]) ? '-' : (string)$critvals[$ckey];
         $table->data[] = [$clabel, $val];
     }
@@ -182,25 +202,36 @@ foreach ($byrater as $rid => $items) {
 
     // Sentiment label badge
     $sentlabel = $get_sentiment_label($rid, $ratee->id, (string)$comment);
-    if ($sentlabel !== '') {
+    if ($sentlabel !== '') 
+    {
         $sentlc = core_text::strtolower($sentlabel);
-        if (strpos($sentlc, 'neg') !== false || strpos($sentlc, 'toxic') !== false || strpos($sentlc, 'bad') !== false) {
+        if (strpos($sentlc, 'neg') !== false || strpos($sentlc, 'toxic') !== false || strpos($sentlc, 'bad') !== false) 
+        {
             $sentbadge = $badge('Sentiment: ' . s($sentlabel), '#ffd6d6', '#900');
-        } else if (strpos($sentlc, 'pos') !== false || strpos($sentlc, 'good') !== false) {
+        } 
+        else if (strpos($sentlc, 'pos') !== false || strpos($sentlc, 'good') !== false) 
+        {
             $sentbadge = $badge('Sentiment: ' . s($sentlabel), '#d6f5e3', '#075');
-        } else if ($sentlc === 'pending') {
+        } 
+        else if ($sentlc === 'pending') 
+        {
             $sentbadge = $badge('Sentiment: Pending', '#fff6cc', 'rgba(85, 170, 102, 1)');
-        } else {
+        } 
+        else 
+        {
             $sentbadge = $badge('Sentiment: ' . s($sentlabel), '#e9e9e9', '#333');
         }
-    } else {
+    } 
+    else 
+    {
         $sentbadge = $badge('Sentiment: —', '#e9e9e9', '#333');
     }
     
     $badgeline = '';
 
     // Fetch disparity row 
-    $disp = $DB->get_record('spe_disparity', [
+    $disp = $DB->get_record('spe_disparity', 
+    [
         'speid'   => $cm->instance,
         'raterid' => (int)$rid,
         'rateeid' => (int)$ratee->id
@@ -208,18 +239,21 @@ foreach ($byrater as $rid => $items) {
 
     $hasdisp = ($disp && (int)$disp->isdisparity === 1);
 
-    if ($hasdisp) {
+    if ($hasdisp) 
+    {
         $reason = trim((string)($disp->commenttext ?? ''));
 
         $content = html_writer::tag('strong', 'Disparity: Yes');
 
-        if ($reason !== '') {
+        if ($reason !== '') 
+        {
             $content .= html_writer::tag('span', '. ' . s($reason), [
                 'style' => 'font-weight:normal; color:#333; margin-left:4px;'
             ]);
         }
 
-        $badgeline .= html_writer::div($content, '', [
+        $badgeline .= html_writer::div($content, '', 
+        [
             'style' => 'display:inline-block; background:#fff69b; color:#333; border-radius:12px; padding:4px 10px; font-size:15px; margin-right:6px;'
         ]);
     };

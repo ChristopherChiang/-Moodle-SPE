@@ -13,29 +13,35 @@ $context = context_module::instance($cm->id);
 
 // Only admin or instructors can export PDF
 $allowedcaps = ['mod/spe:viewresults', 'mod/spe:viewreports', 'mod/spe:manage'];
-if (!has_any_capability($allowedcaps, $context)) {
+if (!has_any_capability($allowedcaps, $context)) 
+{
     require_capability('mod/spe:viewresults', $context);
 }
 
 // Back target
 $returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
-if (!$returnurl) {
+if (!$returnurl) 
+{
     $ref = get_local_referer(false);
     $returnurl = $ref ? $ref : (new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]))->out(false);
 }
 
-if (!$userid && $returnurl) {
+if (!$userid && $returnurl) 
+{
     $parts = parse_url($returnurl);
-    if (!empty($parts['query'])) {
+    if (!empty($parts['query'])) 
+    {
         parse_str($parts['query'], $qs);
-        if (!empty($qs['userid']) && ctype_digit((string)$qs['userid'])) {
+        if (!empty($qs['userid']) && ctype_digit((string)$qs['userid'])) 
+        {
             $userid = (int)$qs['userid'];
         }
     }
 }
 
 // Page header mode
-if (!$download) {
+if (!$download) 
+{
     $params = ['id' => $cm->id, 'returnurl' => $returnurl] + ($userid ? ['userid' => $userid] : []);
     $PAGE->set_url('/mod/spe/export_pdf.php', $params);
     $PAGE->set_context($context);
@@ -60,15 +66,22 @@ if (!$download) {
 }
 
 // -Export PDF
-if (class_exists('\core\session\manager')) { \core\session\manager::write_close(); }
-while (ob_get_level()) { ob_end_clean(); }
+if (class_exists('\core\session\manager')) 
+{ 
+    \core\session\manager::write_close(); 
+}
+while (ob_get_level()) 
+{ 
+    ob_end_clean(); 
+}
 ignore_user_abort(true);
 raise_memory_limit(MEMORY_EXTRA);
 @set_time_limit(0);
 
 $speid = (int)$cm->instance;
 
-$fail = function(string $msg) {
+$fail = function(string $msg) 
+{
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: no-store');
     echo $msg;
@@ -76,7 +89,8 @@ $fail = function(string $msg) {
 };
 
 // Gradebook criteria labels
-$CRITERIA = [
+$CRITERIA = 
+[
     'effortdocs'    => 'Effort',
     'teamwork'      => 'Teamwork',
     'communication' => 'Communication',
@@ -85,7 +99,8 @@ $CRITERIA = [
 ];
 
 // Load disparity per rateeid
-function spe_load_disparity_map_for_rateeids(int $speid, array $rateeids): array {
+function spe_load_disparity_map_for_rateeids(int $speid, array $rateeids): array 
+{
     global $DB;
     if (empty($rateeids)) return [];
     list($insql, $inparams) = $DB->get_in_or_equal($rateeids, SQL_PARAMS_NAMED, 'd');
@@ -100,7 +115,8 @@ function spe_load_disparity_map_for_rateeids(int $speid, array $rateeids): array
 }
 
 // Sentiment label 
-function spe_get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, string $comment): string {
+function spe_get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, string $comment): string 
+{
     global $DB;
     $mgr = $DB->get_manager();
     if (!$mgr->table_exists('spe_sentiment')) return '';
@@ -117,7 +133,8 @@ function spe_get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid
         '*',
         IGNORE_MULTIPLE
     );
-    if (!$rec) {
+    if (!$rec) 
+    {
         $recs = $DB->get_records(
             'spe_sentiment',
             ['speid' => $speid, 'raterid' => $raterid, 'rateeid' => $rateeid, 'type' => 'peer_comment'],
@@ -125,11 +142,16 @@ function spe_get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid
             '*',
             0, 1
         );
-        if ($recs) { $rec = reset($recs); }
+        if ($recs) 
+        { 
+            $rec = reset($recs); 
+        }
     }
     if (!$rec) return '';
-    foreach (['label','sentiment','category','result','polarity','status'] as $field) {
-        if (isset($rec->$field) && trim((string)$rec->$field) !== '') {
+    foreach (['label','sentiment','category','result','polarity','status'] as $field) 
+    {
+        if (isset($rec->$field) && trim((string)$rec->$field) !== '') 
+        {
             return (string)$rec->$field;
         }
     }
@@ -137,7 +159,8 @@ function spe_get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid
 }
 
 // Grade_detail export
-if ($userid > 0) {
+if ($userid > 0) 
+{
     $rows = $DB->get_records_sql("
         SELECT r.id, r.raterid, r.criterion, r.score, r.comment, r.timecreated
           FROM {spe_rating} r
@@ -147,19 +170,24 @@ if ($userid > 0) {
       ORDER BY r.raterid, r.timecreated ASC
     ", ['speid' => $speid, 'rateeid' => $userid]);
 
-    if (!$rows) { $fail('No peer ratings for this student yet.'); }
+    if (!$rows) 
+    { 
+        $fail('No peer ratings for this student yet.'); 
+    }
 
     // Group by rater
     $byrater = [];
     $raterids = [];
-    foreach ($rows as $r) {
+    foreach ($rows as $r) 
+    {
         $rid = (int)$r->raterid;
         $byrater[$rid][] = $r;
         $raterids[$rid] = true;
     }
 
     $rusers = [];
-    if ($raterids) {
+    if ($raterids) 
+    {
         list($insql, $inparams) = $DB->get_in_or_equal(array_keys($raterids), SQL_PARAMS_NAMED, 'ru');
         $rusers = $DB->get_records_select('user', "id $insql", $inparams, '', 'id, firstname, lastname, username');
     }
@@ -185,7 +213,8 @@ if ($userid > 0) {
     $wCrit = 90; // Criterion
     $wScore = 30; // Score
 
-    foreach ($byrater as $rid => $items) {
+    foreach ($byrater as $rid => $items) 
+    {
         $ru = $rusers[$rid] ?? null;
         $rname = $ru ? (fullname($ru) . ' (' . $ru->username . ')') : ('User ID ' . $rid);
 
@@ -198,14 +227,23 @@ if ($userid > 0) {
         $critvals = [];
         $comment  = '';
         $total    = 0;
-        foreach ($CRITERIA as $ckey => $_label) { $critvals[$ckey] = null; }
-        foreach ($items as $it) {
+        foreach ($CRITERIA as $ckey => $_label) 
+        { 
+            $critvals[$ckey] = null; 
+        }
+        foreach ($items as $it) 
+        {
             $ckey = (string)$it->criterion;
-            if (array_key_exists($ckey, $critvals)) {
+            if (array_key_exists($ckey, $critvals)) 
+            {
                 $critvals[$ckey] = is_null($it->score) ? null : (int)$it->score;
-                if (!is_null($critvals[$ckey])) { $total += (int)$it->score; }
+                if (!is_null($critvals[$ckey])) 
+                { 
+                    $total += (int)$it->score; 
+                }
             }
-            if ($comment === '' && !empty($it->comment)) {
+            if ($comment === '' && !empty($it->comment)) 
+            {
                 $comment = (string)$it->comment;
             }
         }
@@ -215,7 +253,8 @@ if ($userid > 0) {
         $pdf->Cell($wScore, 7, 'Score', 1, 1, 'C');
         $pdf->SetFont('helvetica', '', 9);
 
-        foreach ($CRITERIA as $ckey => $label) {
+        foreach ($CRITERIA as $ckey => $label) 
+        {
             $val = is_null($critvals[$ckey]) ? '-' : (string)$critvals[$ckey];
             $pdf->Cell($wCrit, 6.5, $label, 1);
             $pdf->Cell($wScore, 6.5, $val, 1, 1, 'C');
@@ -240,7 +279,8 @@ if ($userid > 0) {
         $sentlabel = spe_get_sentiment_label_for_pair($speid, (int)$rid, (int)$userid, (string)$comment_oneline);
         $sentlabel = ($sentlabel === '') ? '—' : $sentlabel;
 
-        $disp = $DB->get_record('spe_disparity', [
+        $disp = $DB->get_record('spe_disparity', 
+        [
             'speid'   => $speid,
             'raterid' => (int)$rid,
             'rateeid' => (int)$userid
@@ -248,10 +288,13 @@ if ($userid > 0) {
 
         $pdf->SetFont('helvetica', '', 9.5);
         $line = 'Sentiment: ' . $sentlabel;
-        if ($disp && (int)$disp->isdisparity === 1) {
+        if ($disp && (int)$disp->isdisparity === 1) 
+        {
             $reason = trim((string)($disp->commenttext ?? ''));
             $line .= '    |    Disparity: Yes' . ($reason !== '' ? '.' . $reason : '');
-        } else {
+        } 
+        else 
+        {
             $line .= '    |    Disparity: —';
         }
         $pdf->MultiCell(0, 5.5, $line, 0, 'L', false, 1);
@@ -276,15 +319,24 @@ $list = $DB->get_fieldset_sql(
     "SELECT DISTINCT rateeid FROM {spe_rating} WHERE speid = :s",
     ['s' => $speid]
 );
-foreach ($list as $uid) { $userids[(int)$uid] = true; }
+foreach ($list as $uid) 
+{ 
+    $userids[(int)$uid] = true; 
+}
 
 $list2 = $DB->get_fieldset_sql(
     "SELECT DISTINCT userid FROM {spe_submission} WHERE speid = :s",
     ['s' => $speid]
 );
-foreach ($list2 as $uid) { $userids[(int)$uid] = true; }
+foreach ($list2 as $uid) 
+{ 
+    $userids[(int)$uid] = true; 
+}
 
-if (!$userids) { $fail('No participants detected for this activity.'); }
+if (!$userids) 
+{ 
+    $fail('No participants detected for this activity.'); 
+}
 
 list($uinsql, $uinparams) = $DB->get_in_or_equal(array_keys($userids), SQL_PARAMS_NAMED, 'u');
 $users = $DB->get_records_select('user', "id $uinsql", $uinparams, '', 'id, firstname, lastname, username');
@@ -300,12 +352,22 @@ $rs = $DB->get_recordset_sql("
        AND r.raterid <> r.rateeid
   GROUP BY r.rateeid, LOWER(TRIM(r.criterion))
 ", $params);
-foreach ($rs as $r) {
+foreach ($rs as $r) 
+{
     $rid  = (int)$r->rateeid;
     $ckey = (string)$r->ckey;
-    if ($ckey === 'problemsolving' || $ckey === 'problem solving') { $ckey = 'problemsolve'; }
-    if (!array_key_exists($ckey, $CRITERIA)) { continue; }
-    if (!isset($matrix[$rid])) { $matrix[$rid] = []; }
+    if ($ckey === 'problemsolving' || $ckey === 'problem solving') 
+    { 
+        $ckey = 'problemsolve'; 
+    }
+    if (!array_key_exists($ckey, $CRITERIA)) 
+    { 
+        continue; 
+    }
+    if (!isset($matrix[$rid])) 
+    { 
+        $matrix[$rid] = []; 
+    }
     $matrix[$rid][$ckey] = (int)$r->sumscore;
 }
 $rs->close();
@@ -349,9 +411,15 @@ $ratios = [
     'disp'   =>0.11,
 ];
 $sumr = array_sum($ratios);
-foreach ($ratios as $k=>$v) { $ratios[$k] = $v / $sumr; }
+foreach ($ratios as $k=>$v) 
+{ 
+    $ratios[$k] = $v / $sumr; 
+}
 $w = [];
-foreach ($ratios as $k=>$v) { $w[$k] = round($usableW * $v, 2); }
+foreach ($ratios as $k=>$v) 
+{ 
+    $w[$k] = round($usableW * $v, 2); 
+}
 
 $pdf->SetFont('helvetica', 'B', 9);
 $pdf->Cell($w['student'], 7, 'Student', 1);
@@ -367,13 +435,15 @@ $pdf->Cell($w['disp'],  7, 'Disparity', 1, 1, 'C');
 $pdf->SetFont('helvetica', '', 9);
 
 $rowH = 6.5;
-foreach ($users as $uid => $u) {
+foreach ($users as $uid => $u) 
+{
     $name = fullname($u) . ' (' . $u->username . ')';
 
     $vals = [];
     $sumtotal = 0;
     $i = 0;
-    foreach ($CRITERIA as $ckey => $_label) {
+    foreach ($CRITERIA as $ckey => $_label) 
+    {
         $v = isset($matrix[$uid][$ckey]) ? (int)$matrix[$uid][$ckey] : 0;
         $sumtotal += $v;
         $vals[$i++] = $v;

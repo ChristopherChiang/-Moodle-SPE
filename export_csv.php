@@ -13,29 +13,35 @@ $context = context_module::instance($cm->id);
 
 // Allow admins and instructors
 $allowedcaps = ['mod/spe:viewresults', 'mod/spe:viewreports', 'mod/spe:manage'];
-if (!has_any_capability($allowedcaps, $context)) {
+if (!has_any_capability($allowedcaps, $context)) 
+{
     require_capability('mod/spe:viewresults', $context);
 }
 
 // Back link
 $returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
-if (!$returnurl) {
+if (!$returnurl) 
+{
     $ref = get_local_referer(false);
     $returnurl = $ref ? $ref : (new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]))->out(false);
 }
 
-if (!$userid && $returnurl) {
+if (!$userid && $returnurl) 
+{
     $parts = parse_url($returnurl);
-    if (!empty($parts['query'])) {
+    if (!empty($parts['query'])) 
+    {
         parse_str($parts['query'], $qs);
-        if (!empty($qs['userid']) && ctype_digit((string)$qs['userid'])) {
+        if (!empty($qs['userid']) && ctype_digit((string)$qs['userid'])) 
+        {
             $userid = (int)$qs['userid'];
         }
     }
 }
 
 // UI mode 
-if (!$download) {
+if (!$download) 
+{
     $PAGE->set_url('/mod/spe/export_csv.php', ['id' => $cm->id, 'returnurl' => $returnurl] + ($userid ? ['userid' => $userid] : []));
     $PAGE->set_context($context);
     $PAGE->set_title('SPE — Export CSV');
@@ -62,15 +68,22 @@ if (!$download) {
 define('NO_OUTPUT_BUFFERING', true);
 require_once($CFG->libdir . '/grouplib.php');
 
-if (class_exists('\core\session\manager')) { \core\session\manager::write_close(); }
-while (ob_get_level()) { ob_end_clean(); }
+if (class_exists('\core\session\manager')) 
+{ 
+    \core\session\manager::write_close(); 
+}
+while (ob_get_level()) 
+{ 
+    ob_end_clean(); 
+}
 ignore_user_abort(true);
 raise_memory_limit(MEMORY_EXTRA);
 @set_time_limit(0);
 
 $speid = (int)$cm->instance;
 
-$fail = function(string $msg) {
+$fail = function(string $msg) 
+{
     header_remove();
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: no-store');
@@ -80,7 +93,8 @@ $fail = function(string $msg) {
 
 
 // Disparity check for rateeid 
-function load_disparity_map_for_rateeids(int $speid, array $rateeids): array {
+function load_disparity_map_for_rateeids(int $speid, array $rateeids): array 
+{
     global $DB;
     if (empty($rateeids)) return [];
     list($insql, $inparams) = $DB->get_in_or_equal($rateeids, SQL_PARAMS_NAMED, 'd');
@@ -90,12 +104,16 @@ function load_disparity_map_for_rateeids(int $speid, array $rateeids): array {
          WHERE speid = :s AND isdisparity = 1 AND rateeid $insql
     ", ['s'=>$speid] + $inparams);
     $map = [];
-    foreach ($rows as $r) { $map[(int)$r->rateeid] = true; }
+    foreach ($rows as $r) 
+    { 
+        $map[(int)$r->rateeid] = true; 
+    }
     return $map;
 }
 
 // Sentiment label 
-function get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, string $comment): string {
+function get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, string $comment): string 
+{
     global $DB;
     $mgr = $DB->get_manager();
     if (!$mgr->table_exists('spe_sentiment')) return '';
@@ -114,7 +132,8 @@ function get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, st
         IGNORE_MULTIPLE
     );
 
-    if (!$rec) {
+    if (!$rec) 
+    {
         $recs = $DB->get_records(
             'spe_sentiment',
             ['speid' => $speid, 'raterid' => $raterid, 'rateeid' => $rateeid, 'type' => 'peer_comment'],
@@ -122,11 +141,16 @@ function get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, st
             '*',
             0, 1
         );
-        if ($recs) { $rec = reset($recs); }
+        if ($recs) 
+        { 
+            $rec = reset($recs); 
+        }
     }
     if (!$rec) return '';
-    foreach (['label','sentiment','category','result','polarity','status'] as $field) {
-        if (isset($rec->$field) && trim((string)$rec->$field) !== '') {
+    foreach (['label','sentiment','category','result','polarity','status'] as $field) 
+    {
+        if (isset($rec->$field) && trim((string)$rec->$field) !== '') 
+        {
             return (string)$rec->$field;
         }
     }
@@ -134,7 +158,8 @@ function get_sentiment_label_for_pair(int $speid, int $raterid, int $rateeid, st
 }
 
 // Grade detail export 
-if ($userid > 0) {
+if ($userid > 0) 
+{
     $sql = "SELECT r.id, r.raterid, r.criterion, r.score, r.comment, r.timecreated
               FROM {spe_rating} r
              WHERE r.speid = :speid
@@ -143,11 +168,15 @@ if ($userid > 0) {
           ORDER BY r.raterid, r.timecreated ASC";
     $rows = $DB->get_records_sql($sql, ['speid' => $speid, 'rateeid' => $userid]);
 
-    if (!$rows) { $fail('No peer ratings for this student yet.'); }
+    if (!$rows) 
+    { 
+        $fail('No peer ratings for this student yet.'); 
+    }
 
     $byrater = [];
     $raterids = [];
-    foreach ($rows as $r) {
+    foreach ($rows as $r) 
+    {
         $rid = (int)$r->raterid;
         $byrater[$rid][] = $r;
         $raterids[$rid] = true;
@@ -155,7 +184,8 @@ if ($userid > 0) {
 
     // rater users
     $rusers = [];
-    if ($raterids) {
+    if ($raterids) 
+    {
         list($insql, $inparams) = $DB->get_in_or_equal(array_keys($raterids), SQL_PARAMS_NAMED, 'ru');
         $rusers = $DB->get_records_select('user', "id $insql", $inparams, '', 'id, firstname, lastname, username');
     }
@@ -171,14 +201,18 @@ if ($userid > 0) {
     header('Pragma: public');
 
     $out = fopen('php://output', 'w');
-    if (!$out) { $fail('Cannot open output stream.'); }
+    if (!$out) 
+    { 
+        $fail('Cannot open output stream.'); 
+    }
     fputs($out, "\xEF\xBB\xBF"); 
 
     fputcsv($out, ['Ratings received by', $ratee_name]);
     fputcsv($out, ['']); 
 
     // criteria labels
-    $criteria = [
+    $criteria = 
+    [
         'effortdocs'    => 'Effort',
         'teamwork'      => 'Teamwork',
         'communication' => 'Communication',
@@ -186,7 +220,8 @@ if ($userid > 0) {
         'problemsolve'  => 'Problem solving',
     ];
 
-    foreach ($byrater as $rid => $items) {
+    foreach ($byrater as $rid => $items) 
+    {
         $ru = $rusers[$rid] ?? null;
         $rname = $ru ? (fullname($ru) . ' (' . $ru->username . ')') : ('User ID ' . $rid);
 
@@ -197,20 +232,27 @@ if ($userid > 0) {
         $critvals = [];
         $comment  = '';
         $total    = 0;
-        foreach ($criteria as $ckey => $label) { $critvals[$ckey] = null; }
+        foreach ($criteria as $ckey => $label) 
+        { 
+            $critvals[$ckey] = null; 
+        }
 
-        foreach ($items as $it) {
+        foreach ($items as $it) 
+        {
             $ckey = (string)$it->criterion;
-            if (array_key_exists($ckey, $critvals)) {
+            if (array_key_exists($ckey, $critvals)) 
+            {
                 $critvals[$ckey] = is_null($it->score) ? null : (int)$it->score;
                 if (!is_null($critvals[$ckey])) { $total += (int)$it->score; }
             }
-            if ($comment === '' && !empty($it->comment)) {
+            if ($comment === '' && !empty($it->comment)) 
+            {
                 $comment = (string)$it->comment;
             }
         }
 
-        foreach ($criteria as $ckey => $label) {
+        foreach ($criteria as $ckey => $label) 
+        {
             $val = is_null($critvals[$ckey]) ? '-' : (string)$critvals[$ckey];
             fputcsv($out, [$label, $val]);
         }
@@ -226,16 +268,20 @@ if ($userid > 0) {
         fputcsv($out, ['Sentiment', $sentlabel]);
 
         // disparity 
-        $disp = $DB->get_record('spe_disparity', [
+        $disp = $DB->get_record('spe_disparity', 
+        [
             'speid'   => $speid,
             'raterid' => (int)$rid,
             'rateeid' => (int)$userid
         ], 'isdisparity, commenttext', IGNORE_MISSING);
 
-        if ($disp && (int)$disp->isdisparity === 1) {
+        if ($disp && (int)$disp->isdisparity === 1) 
+        {
             $reason = trim((string)($disp->commenttext ?? ''));
             fputcsv($out, ['Disparity', 'Yes', 'Reason', $reason]);
-        } else {
+        } 
+        else 
+        {
             fputcsv($out, ['Disparity', '—']);
         }
 
@@ -247,7 +293,8 @@ if ($userid > 0) {
 }
 
 // Gradebook export 
-$criteria = [
+$criteria = 
+[
     'effortdocs'    => 'Effort on docs',
     'teamwork'      => 'Teamwork',
     'communication' => 'Communication',
@@ -262,15 +309,24 @@ $list = $DB->get_fieldset_sql(
     "SELECT DISTINCT rateeid FROM {spe_rating} WHERE speid = :s",
     ['s' => $speid]
 );
-foreach ($list as $uid) { $userids[(int)$uid] = true; }
+foreach ($list as $uid) 
+{ 
+    $userids[(int)$uid] = true; 
+}
 
 $list2 = $DB->get_fieldset_sql(
     "SELECT DISTINCT userid FROM {spe_submission} WHERE speid = :s",
     ['s' => $speid]
 );
-foreach ($list2 as $uid) { $userids[(int)$uid] = true; }
+foreach ($list2 as $uid) 
+{ 
+    $userids[(int)$uid] = true; 
+}
 
-if (!$userids) { $fail('No participants detected for this activity.'); }
+if (!$userids) 
+{ 
+    $fail('No participants detected for this activity.'); 
+}
 
 list($uinsql, $uinparams) = $DB->get_in_or_equal(array_keys($userids), SQL_PARAMS_NAMED, 'u');
 $users = $DB->get_records_select('user', "id $uinsql", $uinparams, '', 'id, firstname, lastname, username');
@@ -286,7 +342,8 @@ $rs = $DB->get_recordset_sql("
        AND r.raterid <> r.rateeid
   GROUP BY r.rateeid, LOWER(TRIM(r.criterion))
 ", $params);
-foreach ($rs as $r) {
+foreach ($rs as $r) 
+{
     $rid  = (int)$r->rateeid;
     $ckey = (string)$r->ckey;
     if ($ckey === 'problemsolving' || $ckey === 'problem solving') { $ckey = 'problemsolve'; }
@@ -314,25 +371,33 @@ header('Cache-Control: private, must-revalidate');
 header('Pragma: public');
 
 $out = fopen('php://output', 'w');
-if (!$out) { $fail('Cannot open output stream.'); }
+if (!$out) 
+{ 
+    $fail('Cannot open output stream.'); 
+}
 fputs($out, "\xEF\xBB\xBF"); 
 
 // header 
 $head = ['Student'];
-foreach ($criteria as $key => $label) { $head[] = $label . ' (Σ)'; }
-$head[] = 'Total (Σ)';
+foreach ($criteria as $key => $label) 
+{ 
+    $head[] = $label; 
+}
+$head[] = 'Total';
 $head[] = 'Average per rater';
 $head[] = 'Disparity';
 fputcsv($out, $head);
 
 // rows
-foreach ($users as $uid => $u) {
+foreach ($users as $uid => $u) 
+{
     $row = [];
     $name = fullname($u) . ' (' . $u->username . ')';
     $row[] = $name;
 
     $sumtotal = 0;
-    foreach ($criteria as $ckey => $_label) {
+    foreach ($criteria as $ckey => $_label) 
+    {
         $v = isset($matrix[$uid][$ckey]) ? (int)$matrix[$uid][$ckey] : 0;
         $sumtotal += $v;
         $row[] = $v;

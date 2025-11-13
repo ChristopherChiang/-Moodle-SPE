@@ -31,13 +31,15 @@ $params = ['speid' => $cm->instance, 'status' => 'done'];
 $where  = "speid = :speid AND status = :status";
 $rows   = $DB->get_records_select('spe_sentiment', $where, $params, 'raterid, rateeid, id');
 
-if (!$rows) {
+if (!$rows) 
+{
     echo $OUTPUT->notification(
         'No analyzed results yet. Use the Instructor page to queue texts and push for analysis.',
         \core\output\notification::NOTIFY_INFO
     );
 
-    if ($canmanage) {
+    if ($canmanage) 
+    {
         $instrurl = new moodle_url('/mod/spe/instructor.php', ['id' => $cm->id]);
         echo html_writer::tag('p', html_writer::link($instrurl, 'Go to Instructor'));
     }
@@ -59,13 +61,15 @@ if (!$rows) {
 
 // Fetch user names 
 $userids = [];
-foreach ($rows as $r) {
+foreach ($rows as $r) 
+{
     $userids[$r->raterid] = true;
     $userids[$r->rateeid] = true;
 }
 
 $users = [];
-if ($userids) {
+if ($userids) 
+{
     list($insql, $inparams) = $DB->get_in_or_equal(array_keys($userids), SQL_PARAMS_NAMED, 'u');
     $users = $DB->get_records_select('user', "id $insql", $inparams, '', 'id, firstname, lastname, username');
 }
@@ -78,10 +82,10 @@ echo html_writer::tag('tr',
     html_writer::tag('th', 'Type') .
     html_writer::tag('th', 'Label') .
     html_writer::tag('th', 'Score (compound)') .
-    html_writer::tag('th', 'Excerpt')
-);
+    html_writer::tag('th', 'Excerpt'));
 
-foreach ($rows as $r) {
+foreach ($rows as $r) 
+{
     $rater = $users[$r->raterid] ?? null;
     $ratee = $users[$r->rateeid] ?? null;
 
@@ -96,9 +100,18 @@ foreach ($rows as $r) {
                 (core_text::strlen($rawtext) > 120 ? '…' : '');
 
     $style = '';
-    if ($r->label === 'positive')       { $style = 'color:#1a7f37;'; }
-    else if ($r->label === 'negative')  { $style = 'color:#b42318;'; }
-    else if ($r->label === 'neutral')   { $style = 'color:#555;'; }
+    if ($r->label === 'positive')       
+    { 
+        $style = 'color:#1a7f37;'; 
+    }
+    else if ($r->label === 'negative')  
+    { 
+        $style = 'color:#b42318;'; 
+    }
+    else if ($r->label === 'neutral')   
+    { 
+        $style = 'color:#555;'; 
+    }
 
     echo html_writer::tag('tr',
         html_writer::tag('td', $rname) .
@@ -119,7 +132,6 @@ echo html_writer::div(
     html_writer::link($csvpage, 'CSV export page') . ' | ' .
     html_writer::link($pdfpage, 'PDF export page'),
     'spe-export-links',
-    ['style' => 'margin-top:12px;']
-);
+    ['style' => 'margin-top:12px;']);
 
 echo $OUTPUT->footer();

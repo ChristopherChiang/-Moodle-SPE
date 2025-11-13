@@ -12,7 +12,8 @@ require_login($course, false, $cm);
 
 // Admins only
 $sysctx = context_system::instance();
-if (!is_siteadmin() && !has_capability('moodle/site:config', $sysctx)) {
+if (!is_siteadmin() && !has_capability('moodle/site:config', $sysctx)) 
+{
     print_error('nopermissions', 'error', '', 'reset all SPE data');
 }
 
@@ -27,8 +28,10 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading('Admin — Reset All SPE Data', 2);
 
 // Confirmation step
-if (!$confirm) {
-    $confirmurl = new moodle_url('/mod/spe/admin_reset_all.php', [
+if (!$confirm) 
+{
+    $confirmurl = new moodle_url('/mod/spe/admin_reset_all.php', 
+    [
         'id'      => $cm->id,
         'confirm' => 1,
         'sesskey' => sesskey()
@@ -49,7 +52,8 @@ require_sesskey();
 // ---------- Execute reset ----------------
 
 // Set base tables
-$basetables = [
+$basetables = 
+[
     'spe_submission',
     'spe_rating',
     'spe_sentiment',
@@ -57,7 +61,8 @@ $basetables = [
 ];
 
 // Optional tables
-$optionaltables = [
+$optionaltables = 
+[
     'spe_disparity',
     'spe_reflection',
 ];
@@ -65,8 +70,10 @@ $optionaltables = [
 // Delete per-table rows 
 $manager = $DB->get_manager();
 
-foreach (array_merge($basetables, $optionaltables) as $table) {
-    if ($manager->table_exists($table)) {
+foreach (array_merge($basetables, $optionaltables) as $table) 
+{
+    if ($manager->table_exists($table)) 
+    {
         $DB->delete_records($table, ['speid' => $cm->instance]);
     }
 }
@@ -76,11 +83,13 @@ $prefname = 'mod_spe_groupscore_' . $cm->id;
 $DB->delete_records('user_preferences', ['name' => $prefname]);
 
 // Clear gradebook grades
-$DB->delete_records('config_plugins', [
+$DB->delete_records('config_plugins', 
+[
     'plugin' => 'mod_spe',
     'name'   => 'gradingdone_cmid_' . $cm->id
 ]);
-$DB->delete_records('config_plugins', [
+$DB->delete_records('config_plugins', 
+[
     'plugin' => 'mod_spe',
     'name'   => 'gradingdonetime_cmid_' . $cm->id
 ]);
