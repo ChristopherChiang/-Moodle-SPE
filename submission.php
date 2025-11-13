@@ -54,22 +54,6 @@ echo $OUTPUT->header();
 // Title
 echo html_writer::tag('h2', $aname, ['class' => 'mb-2']);
 
-// Opened summary
-$timeopen = isset($spe->timeopen) ? (int)$spe->timeopen : 0;
-$timedue  = isset($spe->timedue)  ? (int)$spe->timedue  : 0;
-
-echo html_writer::start_div('', [
-    'style' => 'background:#f7f9fb;border:1px solid #e5e7eb;padding:14px 16px;border-radius:10px;'
-]);
-echo html_writer::div(
-    html_writer::tag('strong', 'Opened: ') .
-    ($timeopen ? userdate($timeopen, get_string('strftimedatetime', 'langconfig')) : '-')
-);
-echo html_writer::div(
-    html_writer::tag('strong', 'Due: ') .
-    ($timedue ? userdate($timedue, get_string('strftimedatetime', 'langconfig')) : '-')
-);
-echo html_writer::end_div();
 
 //Fetch submission, ratings, last modified time
 $submission   = $DB->get_record('spe_submission', ['speid' => $cm->instance, 'userid' => $userid]);
@@ -139,7 +123,6 @@ $tr = function(string $label, string $valuehtml, string $rowstyle = ''): string 
 
 echo $tr('Submission status', $subhtml, $subrowstyle);
 echo $tr('Grading status',   $gradehtml, $graderowstyle);
-echo $tr('Time remaining',   $timehtml);
 
 // Last modified row
 $lm = $lastmodified ? userdate($lastmodified, get_string('strftimedatetime', 'langconfig')) : '-';
